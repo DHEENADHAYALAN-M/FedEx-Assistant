@@ -22,10 +22,12 @@ import {
   Legend
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useRole } from "@/hooks/use-role.tsx";
 
 const COLORS = ['#232b6e', '#ff6200', '#10b981', '#ef4444']; // Primary, Accent, Green, Red
 
 export default function Dashboard() {
+  const { role } = useRole();
   const { data: stats, isLoading, error } = useDashboardStats();
 
   if (isLoading) {
@@ -47,19 +49,25 @@ export default function Dashboard() {
   }
 
   // Priority Distribution Data
-  // Assuming API might not return this exact shape yet, let's mock it for visualization if missing
-  // or transform data as needed.
   const pieData = [
     { name: 'High Priority', value: 35 },
     { name: 'Medium Priority', value: 45 },
     { name: 'Low Priority', value: 20 },
   ];
 
+  const isAdmin = role === "admin";
+
   return (
     <div className="p-6 md:p-8 space-y-8 max-w-7xl mx-auto">
       <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold font-display text-foreground">Dashboard Overview</h1>
-        <p className="text-muted-foreground">Real-time insights into your debt collection performance.</p>
+        <h1 className="text-3xl font-bold font-display text-foreground">
+          {isAdmin ? "Admin Dashboard" : "Agency Dashboard"}
+        </h1>
+        <p className="text-muted-foreground">
+          {isAdmin 
+            ? "Real-time insights across all debt collection agencies." 
+            : "Real-time insights into your agency's performance."}
+        </p>
       </div>
 
       {/* KPI Cards */}
@@ -158,28 +166,30 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* Top DCAs */}
-      <Card className="shadow-sm border-border/60">
-        <CardHeader>
-          <CardTitle className="text-lg font-semibold">Top Performing Agencies</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="h-[250px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={stats.casesByDca} layout="vertical" margin={{ top: 5, right: 30, left: 40, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#e5e7eb" />
-                <XAxis type="number" hide />
-                <YAxis dataKey="name" type="category" width={100} axisLine={false} tickLine={false} tick={{ fill: '#374151', fontSize: 13, fontWeight: 500 }} />
-                <Tooltip 
-                  cursor={{ fill: 'transparent' }}
-                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                />
-                <Bar dataKey="value" fill="hsl(var(--accent))" radius={[0, 4, 4, 0]} barSize={24} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Top DCAs - Only show for Admin */}
+      {isAdmin && (
+        <Card className="shadow-sm border-border/60">
+          <CardHeader>
+            <CardTitle className="text-lg font-semibold">Top Performing Agencies</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[250px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={stats.casesByDca} layout="vertical" margin={{ top: 5, right: 30, left: 40, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#e5e7eb" />
+                  <XAxis type="number" hide />
+                  <YAxis dataKey="name" type="category" width={100} axisLine={false} tickLine={false} tick={{ fill: '#374151', fontSize: 13, fontWeight: 500 }} />
+                  <Tooltip 
+                    cursor={{ fill: 'transparent' }}
+                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                  />
+                  <Bar dataKey="value" fill="hsl(var(--accent))" radius={[0, 4, 4, 0]} barSize={24} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
