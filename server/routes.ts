@@ -1,25 +1,13 @@
-
 import type { Express } from "express";
 import type { Server } from "http";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
-import { z } from "zod";
 import { addDays } from "date-fns";
-import { db } from "./db";
-import { uploadLogs } from "@shared/schema";
-import { eq } from "drizzle-orm";
-
-import { registerChatRoutes } from "./replit_integrations/chat";
-import { registerImageRoutes } from "./replit_integrations/image";
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
-  // Register AI integration routes
-  registerChatRoutes(app);
-  registerImageRoutes(app);
-
   // === DASHBOARD ===
   app.get(api.dashboard.stats.path, async (req, res) => {
     const dcaId = req.query.dcaId ? Number(req.query.dcaId) : undefined;
@@ -64,7 +52,7 @@ export async function registerRoutes(
     const c = await storage.getCase(caseId);
     if (!c) return res.status(404).json({ message: "Case not found" });
     
-    const dca = c.assignedDcaId ? await storage.getDca(c.assignedDcaId) : undefined;
+    const dca = c.assignedDcaId !== null ? await storage.getDca(c.assignedDcaId) : undefined;
     const notes = await storage.getCaseNotes(caseId);
     
     res.json({ ...c, dca, notes });
@@ -73,7 +61,6 @@ export async function registerRoutes(
   app.put(api.cases.update.path, async (req, res) => {
     const updated = await storage.updateCase(Number(req.params.id), req.body);
     
-    // Auto-log status change
     if (req.body.status) {
       await storage.createCaseNote({
         caseId: updated.id,
@@ -85,14 +72,13 @@ export async function registerRoutes(
     res.json(updated);
   });
 
-  // === IMPORT (SMART AUTOMATION ENGINE) ===
+  // === IMPORT ===
   app.post(api.cases.import.path, async (req, res) => {
     try {
       const { filename, cases } = req.body;
       let processed = 0;
       let errors = 0;
 
-      // Log start
       const log = await storage.createUploadLog({
         filename,
         status: "Processing",
@@ -100,32 +86,22 @@ export async function registerRoutes(
         errorCount: 0
       });
 
-      // AI/Logic Placeholder: "Smart Assignment Engine"
-      // In a real AI app, we would call OpenAI here to analyze risk/priority.
-      // For now, we use Rule-Based Logic as requested.
-
       for (const row of cases) {
         try {
           const amount = Number(row.Amount);
           const daysOverdue = Number(row.Days_Overdue);
           
-          // 1. Assign Priority
           let priority = "Low";
           if (amount > 50000 || daysOverdue > 60) priority = "High";
           else if (amount > 20000) priority = "Medium";
 
-          // 2. Assign DCA (Smart Routing)
-          // Find DCAs in the region
           const regionDcas = await storage.getDcaByRegion(row.Region);
           let assignedDcaId: number | null = null;
           
           if (regionDcas.length > 0) {
-            // Simple load balancing: pick random or first for now
-            // Future: Use "Active Cases" to find least busy
             assignedDcaId = regionDcas[0].id; 
           }
 
-          // 3. Set SLA Deadline
           const today = new Date();
           let slaDays = 30;
           if (priority === "High") slaDays = 7;
@@ -133,7 +109,6 @@ export async function registerRoutes(
           
           const slaDeadline = addDays(today, slaDays);
 
-          // Create Case
           const newCase = await storage.createCase({
             caseIdentifier: String(row.Case_ID),
             customerName: row.Customer_Name,
@@ -146,7 +121,6 @@ export async function registerRoutes(
             slaDeadline
           });
 
-          // Log auto-assignment
           if (assignedDcaId) {
             await storage.createCaseNote({
               caseId: newCase.id,
@@ -162,12 +136,12 @@ export async function registerRoutes(
         }
       }
 
-      // Update log
-      await db.update(uploadLogs).set({
+      await storage.createUploadLog({
+        filename,
         status: errors === 0 ? "Success" : "Partial",
         recordsProcessed: processed,
         errorCount: errors
-      }).where(eq(uploadLogs.id, log.id));
+      });
 
       res.json({ processed, success: true, message: `Processed ${processed} cases with ${errors} errors.` });
 
@@ -192,7 +166,6 @@ export async function registerRoutes(
     res.json(logs);
   });
 
-  // === SEED DATA ===
   await seedDatabase();
 
   return httpServer;
@@ -201,7 +174,7 @@ export async function registerRoutes(
 async function seedDatabase() {
   const existingDcas = await storage.getDcas();
   if (existingDcas.length === 0) {
-    console.log("Seeding database...");
+    console.log("Seeding memory storage...");
     
     const dca1 = await storage.createDca({
       name: "Alpha Collections",
@@ -218,7 +191,6 @@ async function seedDatabase() {
       region: "East"
     });
 
-    // Seed some cases
     await storage.createCase({
       caseIdentifier: "CASE-1001",
       customerName: "Acme Corp",
@@ -228,7 +200,7 @@ async function seedDatabase() {
       status: "In Progress",
       priority: "High",
       assignedDcaId: dca1.id,
-      slaDeadline: new Date(Date.now() + 86400000 * 5) // 5 days from now
+      slaDeadline: new Date(Date.now() + 86400000 * 5)
     });
 
     await storage.createCase({

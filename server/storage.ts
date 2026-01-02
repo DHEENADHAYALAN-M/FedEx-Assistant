@@ -1,236 +1,197 @@
-
-import { db } from "./db";
 import {
-  dcas, cases, caseNotes, uploadLogs,
   type Case, type Dca, type CaseNote, type UploadLog,
   type CreateCaseRequest, type UpdateCaseRequest,
   type CreateDcaRequest, type UpdateDcaRequest,
   type CreateNoteRequest,
   type DashboardStats
 } from "@shared/schema";
-import { eq, desc, sql, and, like } from "drizzle-orm";
-import { aiRecoveryPrediction, aiSuggestedPriority, aiFollowUpMessage } from "./aiService";
 
 export interface IStorage {
-  // DCAs
   getDcas(): Promise<Dca[]>;
   getDca(id: number): Promise<Dca | undefined>;
-  getDcaByName(name: string): Promise<Dca | undefined>; // For auto-assignment
-  getDcaByRegion(region: string): Promise<Dca[]>; // For auto-assignment
+  getDcaByName(name: string): Promise<Dca | undefined>;
+  getDcaByRegion(region: string): Promise<Dca[]>;
   createDca(dca: CreateDcaRequest): Promise<Dca>;
   updateDca(id: number, updates: UpdateDcaRequest): Promise<Dca>;
-
-  // Cases
   getCases(filters?: { search?: string, status?: string, dcaId?: number }): Promise<(Case & { dcaName?: string })[]>;
   getCase(id: number): Promise<Case | undefined>;
   createCase(data: CreateCaseRequest): Promise<Case>;
   updateCase(id: number, updates: UpdateCaseRequest): Promise<Case>;
-  
-  // Notes
   getCaseNotes(caseId: number): Promise<CaseNote[]>;
   createCaseNote(note: CreateNoteRequest): Promise<CaseNote>;
-
-  // Upload Logs
   createUploadLog(log: any): Promise<UploadLog>;
   getUploadLogs(): Promise<UploadLog[]>;
-
-  // Stats
   getDashboardStats(dcaId?: number): Promise<DashboardStats>;
 }
 
-export class DatabaseStorage implements IStorage {
+export class MemStorage implements IStorage {
+  private dcas: Map<number, Dca>;
+  private cases: Map<number, Case>;
+  private notes: Map<number, CaseNote>;
+  private logs: Map<number, UploadLog>;
+  private currentId: { [key: string]: number };
+
+  constructor() {
+    this.dcas = new Map();
+    this.cases = new Map();
+    this.notes = new Map();
+    this.logs = new Map();
+    this.currentId = { dcas: 1, cases: 1, notes: 1, logs: 1 };
+  }
+
   async getDcas(): Promise<Dca[]> {
-    return await db.select().from(dcas).orderBy(desc(dcas.slaScore));
+    return Array.from(this.dcas.values()).sort((a, b) => Number(b.slaScore) - Number(a.slaScore));
   }
 
   async getDca(id: number): Promise<Dca | undefined> {
-    const [dca] = await db.select().from(dcas).where(eq(dcas.id, id));
-    return dca;
+    return this.dcas.get(id);
   }
 
   async getDcaByName(name: string): Promise<Dca | undefined> {
-    const [dca] = await db.select().from(dcas).where(eq(dcas.name, name));
-    return dca;
+    return Array.from(this.dcas.values()).find(d => d.name === name);
   }
 
   async getDcaByRegion(region: string): Promise<Dca[]> {
-    return await db.select().from(dcas).where(eq(dcas.region, region));
+    return Array.from(this.dcas.values()).filter(d => d.region === region);
   }
 
   async createDca(dca: CreateDcaRequest): Promise<Dca> {
-    const [newDca] = await db.insert(dcas).values(dca).returning();
+    const id = this.currentId.dcas++;
+    const newDca: Dca = {
+      ...dca,
+      id,
+      activeCases: 0,
+      recoveredCases: 0,
+      slaScore: "100",
+      createdAt: new Date()
+    };
+    this.dcas.set(id, newDca);
     return newDca;
   }
 
   async updateDca(id: number, updates: UpdateDcaRequest): Promise<Dca> {
-    const [updated] = await db.update(dcas).set(updates).where(eq(dcas.id, id)).returning();
+    const dca = await this.getDca(id);
+    if (!dca) throw new Error("DCA not found");
+    const updated = { ...dca, ...updates };
+    this.dcas.set(id, updated);
     return updated;
   }
 
   async getCases(filters?: { search?: string, status?: string, dcaId?: number }): Promise<(Case & { dcaName?: string })[]> {
-    const conditions = [];
-    if (filters?.status) conditions.push(eq(cases.status, filters.status));
-    if (filters?.dcaId) conditions.push(eq(cases.assignedDcaId, filters.dcaId));
+    let allCases = Array.from(this.cases.values());
+    
+    if (filters?.status) allCases = allCases.filter(c => c.status === filters.status);
+    if (filters?.dcaId) allCases = allCases.filter(c => c.assignedDcaId === filters.dcaId);
     if (filters?.search) {
-      conditions.push(
-        sql`(${cases.customerName} ILIKE ${`%${filters.search}%`} OR ${cases.caseIdentifier} ILIKE ${`%${filters.search}%`})`
+      const search = filters.search.toLowerCase();
+      allCases = allCases.filter(c => 
+        c.customerName.toLowerCase().includes(search) || 
+        c.caseIdentifier.toLowerCase().includes(search)
       );
     }
 
-    const query = db
-      .select({
-        id: cases.id,
-        caseIdentifier: cases.caseIdentifier,
-        customerName: cases.customerName,
-        amount: cases.amount,
-        daysOverdue: cases.daysOverdue,
-        region: cases.region,
-        status: cases.status,
-        priority: cases.priority,
-        assignedDcaId: cases.assignedDcaId,
-        slaDeadline: cases.slaDeadline,
-        aiRecoveryScore: cases.aiRecoveryScore,
-        aiPriority: cases.aiPriority,
-        aiFollowUpMessage: cases.aiFollowUpMessage,
-        aiLastUpdatedAt: cases.aiLastUpdatedAt,
-        createdAt: cases.createdAt,
-        dcaName: dcas.name
-      })
-      .from(cases)
-      .leftJoin(dcas, eq(cases.assignedDcaId, dcas.id));
-
-    if (conditions.length > 0) {
-      // @ts-ignore
-      return await query.where(and(...conditions)).orderBy(desc(cases.createdAt));
-    }
-    
-    return await query.orderBy(desc(cases.createdAt));
+    return allCases.map(c => ({
+      ...c,
+      dcaName: c.assignedDcaId ? this.dcas.get(c.assignedDcaId)?.name : undefined
+    })).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }
 
   async getCase(id: number): Promise<Case | undefined> {
-    const [c] = await db.select().from(cases).where(eq(cases.id, id));
-    return c;
+    return this.cases.get(id);
   }
 
   async createCase(data: CreateCaseRequest): Promise<Case> {
-    const aiData = {
-      amount: Number(data.amount),
-      daysOverdue: data.daysOverdue,
-      status: data.status || "New"
-    };
-
-    const aiRecoveryScore = await aiRecoveryPrediction(aiData);
-    const aiPriority = await aiSuggestedPriority(aiData, data.priority || "Low");
-    const aiFollowUpMessageText = await aiFollowUpMessage(aiData, data.customerName);
-
-    const [newCase] = await db.insert(cases).values({
+    const id = this.currentId.cases++;
+    const newCase: Case = {
       ...data,
-      aiRecoveryScore,
-      aiPriority,
-      aiFollowUpMessage: aiFollowUpMessageText,
-      aiLastUpdatedAt: new Date()
-    }).returning();
+      id,
+      aiRecoveryScore: null,
+      aiPriority: null,
+      aiFollowUpMessage: null,
+      aiLastUpdatedAt: null,
+      createdAt: new Date(),
+      status: data.status || "New",
+      priority: data.priority || "Low",
+      assignedDcaId: data.assignedDcaId || null,
+      slaDeadline: data.slaDeadline || null,
+    };
+    this.cases.set(id, newCase);
     return newCase;
   }
 
   async updateCase(id: number, updates: UpdateCaseRequest): Promise<Case> {
     const current = await this.getCase(id);
     if (!current) throw new Error("Case not found");
-
-    const aiData = {
-      amount: Number(updates.amount || current.amount),
-      daysOverdue: updates.daysOverdue || current.daysOverdue,
-      status: updates.status || current.status
-    };
-
-    const aiRecoveryScore = await aiRecoveryPrediction(aiData);
-    const aiPriority = await aiSuggestedPriority(aiData, updates.priority || current.priority);
-    const aiFollowUpMessageText = await aiFollowUpMessage(aiData, updates.customerName || current.customerName);
-
-    const [updated] = await db.update(cases).set({
-      ...updates,
-      aiRecoveryScore,
-      aiPriority,
-      aiFollowUpMessage: aiFollowUpMessageText,
-      aiLastUpdatedAt: new Date()
-    }).where(eq(cases.id, id)).returning();
+    const updated = { ...current, ...updates };
+    this.cases.set(id, updated);
     return updated;
   }
 
   async getCaseNotes(caseId: number): Promise<CaseNote[]> {
-    return await db.select().from(caseNotes).where(eq(caseNotes.caseId, caseId)).orderBy(desc(caseNotes.createdAt));
+    return Array.from(this.notes.values())
+      .filter(n => n.caseId === caseId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }
 
   async createCaseNote(note: CreateNoteRequest): Promise<CaseNote> {
-    const [newNote] = await db.insert(caseNotes).values(note).returning();
+    const id = this.currentId.notes++;
+    const newNote: CaseNote = {
+      ...note,
+      id,
+      isSystemGenerated: note.isSystemGenerated || false,
+      createdAt: new Date()
+    };
+    this.notes.set(id, newNote);
     return newNote;
   }
 
   async createUploadLog(log: any): Promise<UploadLog> {
-    const [newLog] = await db.insert(uploadLogs).values(log).returning();
+    const id = this.currentId.logs++;
+    const newLog: UploadLog = {
+      ...log,
+      id,
+      recordsProcessed: log.recordsProcessed || 0,
+      errorCount: log.errorCount || 0,
+      createdAt: new Date()
+    };
+    this.logs.set(id, newLog);
     return newLog;
   }
 
   async getUploadLogs(): Promise<UploadLog[]> {
-    return await db.select().from(uploadLogs).orderBy(desc(uploadLogs.createdAt));
+    return Array.from(this.logs.values()).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }
 
   async getDashboardStats(dcaId?: number): Promise<DashboardStats> {
-    const conditions = dcaId ? [eq(cases.assignedDcaId, dcaId)] : [];
-    
-    // Total Cases
-    const [total] = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(cases)
-      .where(and(...conditions));
-      
-    // Pending
-    const [pending] = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(cases)
-      .where(and(...conditions, sql`${cases.status} NOT IN ('Recovered', 'Escalated')`));
+    let allCases = Array.from(this.cases.values());
+    if (dcaId) allCases = allCases.filter(c => c.assignedDcaId === dcaId);
 
-    // Recovered
-    const [recovered] = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(cases)
-      .where(and(...conditions, eq(cases.status, 'Recovered')));
+    const total = allCases.length;
+    const pending = allCases.filter(c => !['Recovered', 'Escalated'].includes(c.status)).length;
+    const recovered = allCases.filter(c => c.status === 'Recovered').length;
+    const breaches = allCases.filter(c => 
+      c.slaDeadline && c.slaDeadline < new Date() && !['Recovered', 'Escalated'].includes(c.status)
+    ).length;
 
-    // SLA Breaches (Deadline passed and not closed)
-    const [breaches] = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(cases)
-      .where(and(
-        ...conditions, 
-        sql`${cases.slaDeadline} < NOW()`,
-        sql`${cases.status} NOT IN ('Recovered', 'Escalated')`
-      ));
+    const statusCounts: { [key: string]: number } = {};
+    const dcaCounts: { [key: string]: number } = {};
 
-    // Group by Status
-    const byStatus = await db
-      .select({ name: cases.status, value: sql<number>`count(*)` })
-      .from(cases)
-      .where(and(...conditions))
-      .groupBy(cases.status);
-
-    // Group by DCA
-    const byDca = await db
-      .select({ name: dcas.name, value: sql<number>`count(*)` })
-      .from(cases)
-      .leftJoin(dcas, eq(cases.assignedDcaId, dcas.id))
-      .where(and(...conditions))
-      .groupBy(dcas.name);
+    allCases.forEach(c => {
+      statusCounts[c.status] = (statusCounts[c.status] || 0) + 1;
+      const dcaName = c.assignedDcaId ? this.dcas.get(c.assignedDcaId)?.name || 'Unassigned' : 'Unassigned';
+      dcaCounts[dcaName] = (dcaCounts[dcaName] || 0) + 1;
+    });
 
     return {
-      totalCases: Number(total?.count || 0),
-      pendingCases: Number(pending?.count || 0),
-      recoveredCases: Number(recovered?.count || 0),
-      slaBreaches: Number(breaches?.count || 0),
-      casesByStatus: byStatus.map(s => ({ ...s, value: Number(s.value) })),
-      casesByDca: byDca.map(d => ({ name: d.name || 'Unassigned', value: Number(d.value) })),
-      recoveryRate: total?.count ? Math.round((Number(recovered?.count) / Number(total?.count)) * 100) : 0
+      totalCases: total,
+      pendingCases: pending,
+      recoveredCases: recovered,
+      slaBreaches: breaches,
+      casesByStatus: Object.entries(statusCounts).map(([name, value]) => ({ name, value })),
+      casesByDca: Object.entries(dcaCounts).map(([name, value]) => ({ name, value })),
+      recoveryRate: total ? Math.round((recovered / total) * 100) : 0
     };
   }
 }
 
-export const storage = new DatabaseStorage();
+export const storage = new MemStorage();
