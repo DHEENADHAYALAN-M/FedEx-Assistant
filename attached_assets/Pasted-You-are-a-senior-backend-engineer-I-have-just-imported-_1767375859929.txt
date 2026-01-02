@@ -1,0 +1,85 @@
+You are a senior backend engineer.
+
+I have just imported the GitHub repository:
+https://github.com/DHEENADHAYALAN-M/FedEx-Assistant.git
+into Replit.
+
+The project currently fails due to:
+- DATABASE_URL dependency (PostgreSQL/Drizzle)
+- Missing build artifacts (dist/index.cjs)
+- Cross-platform NODE_ENV issues
+- Replit startup instability
+
+Your task is to FIX the project so it runs cleanly in Replit.
+
+------------------------------------------------
+GOAL (MANDATORY)
+------------------------------------------------
+After your changes, ALL of the following must work:
+
+npm install
+npm run build
+npm start
+
+With:
+- NO DATABASE_URL error
+- NO NODE_ENV error
+- NO missing dist/index.cjs error
+- NO crash on startup
+
+------------------------------------------------
+REQUIRED ACTIONS
+------------------------------------------------
+
+1) REMOVE SQL / DRIZZLE DEPENDENCY COMPLETELY
+- Remove all imports related to:
+  drizzle, pg, postgres, DATABASE_URL
+- Remove or neutralize any code that throws:
+  "DATABASE_URL must be set"
+- drizzle.config.ts should no longer affect runtime
+
+2) SWITCH TO MONGODB (STABLE BASELINE)
+- Install mongoose
+- Create server/db.js
+- Connect using process.env.MONGODB_URI
+- If MONGODB_URI is missing:
+    - Log a warning
+    - Do NOT crash the server
+
+3) FIX SERVER STARTUP
+- Ensure dotenv/config is loaded first
+- Server must start even if DB is not connected
+- Bind to process.env.PORT || 5000
+
+4) FIX package.json SCRIPTS (CRITICAL)
+Update scripts to:
+
+"scripts": {
+  "build": "tsx script/build.ts",
+  "start": "npm run build && cross-env NODE_ENV=production node dist/index.cjs",
+  "dev": "cross-env NODE_ENV=development tsx server/index.ts"
+}
+
+- Use cross-env
+- Start must auto-build if dist is missing
+
+5) CLEAN BUT DO NOT ADD FEATURES
+- Keep existing routes (even if empty)
+- Comment out unfinished logic instead of crashing
+- Do NOT add AI
+- Do NOT add new business features
+
+6) REPLIT COMPATIBILITY
+- No OS-specific commands
+- No hardcoded localhost
+- Must work in Replit immediately after import
+
+------------------------------------------------
+SUCCESS CHECK
+------------------------------------------------
+- npm start runs successfully
+- Server prints "listening on port ..."
+- MongoDB support is present but optional
+- Project is now a stable baseline
+
+Apply these fixes now.
