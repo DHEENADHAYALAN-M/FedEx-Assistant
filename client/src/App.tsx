@@ -10,6 +10,7 @@ import ExcelUpload from "@/pages/ExcelUpload";
 import DcaManagement from "@/pages/DcaManagement";
 import { Sidebar } from "@/components/Sidebar";
 import { Header } from "@/components/Header";
+import { RoleProvider } from "@/hooks/use-role";
 
 function Router() {
   return (
@@ -39,17 +40,17 @@ function Layout({ children }: { children: React.ReactNode }) {
   );
 }
 
-function App() {
+export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Layout>
-          <Router />
-        </Layout>
-        <Toaster />
+        <RoleProvider>
+          <Layout>
+            <Router />
+          </Layout>
+          <Toaster />
+        </RoleProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );
 }
-
-export default App;

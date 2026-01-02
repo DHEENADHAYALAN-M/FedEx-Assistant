@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, buildUrl, type UpdateCaseRequest, type CreateNoteRequest } from "@shared/routes";
 import { useToast } from "@/hooks/use-toast";
+import { useRole } from "./use-role";
 
 interface CaseFilters {
   search?: string;
@@ -9,8 +10,10 @@ interface CaseFilters {
 }
 
 export function useCases(filters: CaseFilters = {}) {
+  const { role, selectedDcaId } = useRole();
+  
   // Construct query key that includes filters to trigger re-fetches
-  const queryKey = [api.cases.list.path, filters];
+  const queryKey = [api.cases.list.path, filters, role, selectedDcaId];
   
   return useQuery({
     queryKey,
@@ -19,7 +22,9 @@ export function useCases(filters: CaseFilters = {}) {
       const url = new URL(api.cases.list.path, window.location.origin);
       if (filters.search) url.searchParams.set("search", filters.search);
       if (filters.status && filters.status !== "all") url.searchParams.set("status", filters.status);
-      if (filters.dcaId) url.searchParams.set("dcaId", filters.dcaId);
+      
+      const dcaId = role === "dca" ? selectedDcaId?.toString() : filters.dcaId;
+      if (dcaId) url.searchParams.set("dcaId", dcaId);
 
       const res = await fetch(url.toString());
       if (!res.ok) throw new Error("Failed to fetch cases");

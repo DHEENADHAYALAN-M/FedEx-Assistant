@@ -13,8 +13,8 @@ export async function registerRoutes(
 
   // === DASHBOARD ===
   app.get(api.dashboard.stats.path, async (req, res) => {
-    // Optional DCA ID simulation (passed as query for now if needed, but standard doesn't have it)
-    const stats = await storage.getDashboardStats();
+    const dcaId = req.query.dcaId ? Number(req.query.dcaId) : undefined;
+    const stats = await storage.getDashboardStats(dcaId);
     res.json(stats);
   });
 
