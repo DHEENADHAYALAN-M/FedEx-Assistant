@@ -2,10 +2,12 @@ import type { Express, Request, Response } from "express";
 import OpenAI from "openai";
 import { chatStorage } from "./storage";
 
-const openai = new OpenAI({
-  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
-  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
-});
+const openai = process.env.AI_INTEGRATIONS_OPENAI_API_KEY
+  ? new OpenAI({
+      apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+      baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+    })
+  : null;
 
 export function registerChatRoutes(app: Express): void {
   // Get all conversations
@@ -79,6 +81,16 @@ export function registerChatRoutes(app: Express): void {
       res.setHeader("Content-Type", "text/event-stream");
       res.setHeader("Cache-Control", "no-cache");
       res.setHeader("Connection", "keep-alive");
+
+      // Check if OpenAI is configured
+      if (!openai) {
+        const fallbackResponse = "AI chat is not configured. Please set up the OpenAI integration.";
+        await chatStorage.createMessage(conversationId, "assistant", fallbackResponse);
+        res.write(`data: ${JSON.stringify({ content: fallbackResponse })}\n\n`);
+        res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
+        res.end();
+        return;
+      }
 
       // Stream response from OpenAI
       const stream = await openai.chat.completions.create({

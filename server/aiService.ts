@@ -1,10 +1,13 @@
 import OpenAI from "openai";
 
 // Initialize OpenAI client with Replit-specific environment variables
-const openai = new OpenAI({
-  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
-  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
-});
+// Only create client if API key is available, otherwise AI features will use fallbacks
+const openai = process.env.AI_INTEGRATIONS_OPENAI_API_KEY
+  ? new OpenAI({
+      apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+      baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+    })
+  : null;
 
 export interface CaseAiData {
   amount: number;
@@ -16,6 +19,9 @@ export interface CaseAiData {
  * Predict recovery probability using AI with a rule-based fallback.
  */
 export async function aiRecoveryPrediction(caseData: CaseAiData): Promise<number> {
+  if (!openai) {
+    return fallbackRecoveryScore(caseData);
+  }
   try {
     const response = await openai.chat.completions.create({
       model: "gpt-5",
@@ -52,6 +58,9 @@ function fallbackRecoveryScore(caseData: CaseAiData): number {
 export async function aiSuggestedPriority(caseData: CaseAiData, rulePriority: string): Promise<string> {
   const priorities = ["Low", "Medium", "High"];
   
+  if (!openai) {
+    return rulePriority;
+  }
   try {
     const response = await openai.chat.completions.create({
       model: "gpt-5",
@@ -85,6 +94,9 @@ export async function aiSuggestedPriority(caseData: CaseAiData, rulePriority: st
  * Generate a professional follow-up reminder message.
  */
 export async function aiFollowUpMessage(caseData: CaseAiData, customerName: string): Promise<string> {
+  if (!openai) {
+    return fallbackFollowUp(customerName, caseData.amount);
+  }
   try {
     const response = await openai.chat.completions.create({
       model: "gpt-5",
