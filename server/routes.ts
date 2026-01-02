@@ -52,7 +52,7 @@ export async function registerRoutes(
     const c = await storage.getCase(caseId);
     if (!c) return res.status(404).json({ message: "Case not found" });
     
-    const dca = c.assignedDcaId !== null ? await storage.getDca(c.assignedDcaId) : undefined;
+    const dca = c.assignedDcaId !== null && c.assignedDcaId !== undefined ? await storage.getDca(c.assignedDcaId) : undefined;
     const notes = await storage.getCaseNotes(caseId);
     
     res.json({ ...c, dca, notes });
