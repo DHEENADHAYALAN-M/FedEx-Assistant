@@ -1,0 +1,75 @@
+You are a senior full-stack software engineer.
+
+The GitHub repo at https://github.com/DHEENADHAYALAN-M/FedEx-Assistant.git has:
+- a TypeScript backend using Drizzle/SQL that currently fails on startup because DATABASE_URL is required
+- a client folder and server folder
+- build and run errors on both local and Replit environments
+
+Your task is to **fix ALL existing errors permanently** and prepare the project for MongoDB + AI later.
+
+DO NOT add AI logic yet.
+
+------------------------------------------------
+OBJECTIVES (FIX CURRENT ISSUES)
+------------------------------------------------
+1) Make the project charset-independent and cross-platform:
+   - Fix package.json scripts so `npm start` works on Replit, Windows, macOS, and Linux.
+   - Ensure automatic build runs before start.
+   - Remove OS-specific environment setting (NODE_ENV).
+
+2) Remove all SQL/Drizzle & PostgreSQL dependencies:
+   - Remove or disable code that requires DATABASE_URL.
+   - Safely remove or comment out any SQL/Drizzle model and DB code.
+   - Delete or update drizzle.config.ts so it no longer causes errors.
+
+3) Add MongoDB as a permanent database:
+   - Install `mongoose` via package.json.
+   - Create db.js in server root that connects to MongoDB with environment variable MONGODB_URI.
+   - Use dotenv for env loading.
+   - Create Mongoose schemas for:
+     • DCA
+     • Case
+     • CaseNote
+     • UploadLog
+
+4) Update backend startup logic:
+   - Replace SQL DB connection with MongoDB connection in server entrypoint.
+   - Ensure API routes use Mongoose models instead of SQL/Drizzle until AI integration later.
+
+5) Temporary fallback route:
+   - If MONGODB_URI is missing, show a meaningful warning and start server in limited mode.
+
+6) Fix build scripts:
+   - package.json scripts:
+     "build": "tsc",
+     "start": "npm run build && cross-env NODE_ENV=production node dist/server/index.js",
+     "dev": "cross-env NODE_ENV=development ts-node server/index.ts"
+
+7) Update .replit config to run correct start command.
+
+8) Add README notes:
+   - How to set MONGODB_URI in Replit Secrets
+   - How to run locally
+
+------------------------------------------------
+REQUIREMENTS
+------------------------------------------------
+✔ No more `Error: DATABASE_URL must be set`
+✔ No build errors on fresh clone + npm install + npm start
+✔ Works on Replit directly
+✔ Migrate from SQL to MongoDB safely
+✔ Keep existing API route names intact where possible
+✔ Prepare for AI integration in next phase
+
+------------------------------------------------
+OUTPUT
+------------------------------------------------
+Provide full working code changes including:
+- package.json
+- new db.js
+- updated server entrypoint
+- updated models folder
+- removed Drizzle config
+- updated README
+
+Apply the fixes now.
