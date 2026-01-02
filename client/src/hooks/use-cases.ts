@@ -1,7 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api, buildUrl, type UpdateCaseRequest, type CreateNoteRequest } from "@shared/routes";
+import { api, buildUrl } from "@shared/routes";
+import { type UpdateCaseRequest, type CreateNoteRequest } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
-import { useRole } from "./use-role";
+import { useRole } from "./use-role.tsx";
 
 interface CaseFilters {
   search?: string;

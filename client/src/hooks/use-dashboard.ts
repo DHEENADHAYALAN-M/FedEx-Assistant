@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@shared/routes";
-import { useRole } from "./use-role";
+import { useRole } from "./use-role.tsx";
 
 export function useDashboardStats() {
   const { role, selectedDcaId } = useRole();

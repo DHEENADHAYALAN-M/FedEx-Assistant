@@ -10,7 +10,7 @@ import {
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem
 } from "@/components/ui/dropdown-menu";
-import { useRole } from "@/hooks/use-role";
+import { useRole } from "@/hooks/use-role.tsx";
 import { useDcas } from "@/hooks/use-dcas";
 
 export function Header() {

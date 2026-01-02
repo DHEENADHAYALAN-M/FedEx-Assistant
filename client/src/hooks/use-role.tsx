@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
 type Role = "admin" | "dca";
 
@@ -11,13 +11,19 @@ interface RoleContextType {
 
 const RoleContext = createContext<RoleContextType | undefined>(undefined);
 
-export function RoleProvider({ children }: { children: React.ReactNode }) {
+export function RoleProvider({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<Role>(() => {
-    return (localStorage.getItem("user-role") as Role) || "admin";
+    if (typeof window !== "undefined") {
+      return (localStorage.getItem("user-role") as Role) || "admin";
+    }
+    return "admin";
   });
   const [selectedDcaId, setSelectedDcaId] = useState<number | null>(() => {
-    const saved = localStorage.getItem("selected-dca-id");
-    return saved ? Number(saved) : null;
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("selected-dca-id");
+      return saved ? Number(saved) : null;
+    }
+    return null;
   });
 
   useEffect(() => {

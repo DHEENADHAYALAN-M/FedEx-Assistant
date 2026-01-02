@@ -10,7 +10,7 @@ import ExcelUpload from "@/pages/ExcelUpload";
 import DcaManagement from "@/pages/DcaManagement";
 import { Sidebar } from "@/components/Sidebar";
 import { Header } from "@/components/Header";
-import { RoleProvider } from "@/hooks/use-role";
+import { RoleProvider } from "@/hooks/use-role.tsx";
 
 function Router() {
   return (

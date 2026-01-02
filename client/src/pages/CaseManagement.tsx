@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Search, Filter, RefreshCw, FileText } from "lucide-react";
-import CaseDetailView from "@/components/CaseDetailView";
+import CaseDetailView from "../components/CaseDetailView";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 

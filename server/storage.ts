@@ -78,7 +78,17 @@ export class DatabaseStorage implements IStorage {
 
     const query = db
       .select({
-        ...cases,
+        id: cases.id,
+        caseIdentifier: cases.caseIdentifier,
+        customerName: cases.customerName,
+        amount: cases.amount,
+        daysOverdue: cases.daysOverdue,
+        region: cases.region,
+        status: cases.status,
+        priority: cases.priority,
+        assignedDcaId: cases.assignedDcaId,
+        slaDeadline: cases.slaDeadline,
+        createdAt: cases.createdAt,
         dcaName: dcas.name
       })
       .from(cases)

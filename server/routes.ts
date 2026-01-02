@@ -5,6 +5,9 @@ import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { z } from "zod";
 import { addDays } from "date-fns";
+import { db } from "./db";
+import { uploadLogs } from "@shared/schema";
+import { eq } from "drizzle-orm";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -196,20 +199,17 @@ async function seedDatabase() {
     
     const dca1 = await storage.createDca({
       name: "Alpha Collections",
-      region: "North",
-      slaScore: "98.5"
+      region: "North"
     });
     
     const dca2 = await storage.createDca({
       name: "Omega Recovery",
-      region: "South",
-      slaScore: "95.0"
+      region: "South"
     });
 
     const dca3 = await storage.createDca({
       name: "Global Debt Solvers",
-      region: "East",
-      slaScore: "92.0"
+      region: "East"
     });
 
     // Seed some cases

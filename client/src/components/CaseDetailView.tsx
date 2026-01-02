@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
 
 interface CaseDetailViewProps {
   caseId: number;
