@@ -9,10 +9,16 @@ import { db } from "./db";
 import { uploadLogs } from "@shared/schema";
 import { eq } from "drizzle-orm";
 
+import { registerChatRoutes } from "./replit_integrations/chat";
+import { registerImageRoutes } from "./replit_integrations/image";
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  // Register AI integration routes
+  registerChatRoutes(app);
+  registerImageRoutes(app);
 
   // === DASHBOARD ===
   app.get(api.dashboard.stats.path, async (req, res) => {

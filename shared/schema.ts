@@ -4,6 +4,8 @@ import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+export * from "./models/chat";
+
 // === TABLE DEFINITIONS ===
 
 // DCA Master Table
@@ -29,6 +31,10 @@ export const cases = pgTable("cases", {
   priority: text("priority").notNull().default("Low"), // High, Medium, Low (Auto-calculated)
   assignedDcaId: integer("assigned_dca_id").references(() => dcas.id),
   slaDeadline: timestamp("sla_deadline"),
+  aiRecoveryScore: integer("ai_recovery_score"),
+  aiPriority: text("ai_priority"),
+  aiFollowUpMessage: text("ai_follow_up_message"),
+  aiLastUpdatedAt: timestamp("ai_last_updated_at"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

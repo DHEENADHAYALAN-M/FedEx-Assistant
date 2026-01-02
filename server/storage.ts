@@ -9,6 +9,7 @@ import {
   type DashboardStats
 } from "@shared/schema";
 import { eq, desc, sql, and, like } from "drizzle-orm";
+import { aiRecoveryPrediction, aiSuggestedPriority, aiFollowUpMessage } from "./aiService";
 
 export interface IStorage {
   // DCAs
@@ -88,6 +89,10 @@ export class DatabaseStorage implements IStorage {
         priority: cases.priority,
         assignedDcaId: cases.assignedDcaId,
         slaDeadline: cases.slaDeadline,
+        aiRecoveryScore: cases.aiRecoveryScore,
+        aiPriority: cases.aiPriority,
+        aiFollowUpMessage: cases.aiFollowUpMessage,
+        aiLastUpdatedAt: cases.aiLastUpdatedAt,
         createdAt: cases.createdAt,
         dcaName: dcas.name
       })
@@ -108,12 +113,47 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createCase(data: CreateCaseRequest): Promise<Case> {
-    const [newCase] = await db.insert(cases).values(data).returning();
+    const aiData = {
+      amount: Number(data.amount),
+      daysOverdue: data.daysOverdue,
+      status: data.status || "New"
+    };
+
+    const aiRecoveryScore = await aiRecoveryPrediction(aiData);
+    const aiPriority = await aiSuggestedPriority(aiData, data.priority || "Low");
+    const aiFollowUpMessageText = await aiFollowUpMessage(aiData, data.customerName);
+
+    const [newCase] = await db.insert(cases).values({
+      ...data,
+      aiRecoveryScore,
+      aiPriority,
+      aiFollowUpMessage: aiFollowUpMessageText,
+      aiLastUpdatedAt: new Date()
+    }).returning();
     return newCase;
   }
 
   async updateCase(id: number, updates: UpdateCaseRequest): Promise<Case> {
-    const [updated] = await db.update(cases).set(updates).where(eq(cases.id, id)).returning();
+    const current = await this.getCase(id);
+    if (!current) throw new Error("Case not found");
+
+    const aiData = {
+      amount: Number(updates.amount || current.amount),
+      daysOverdue: updates.daysOverdue || current.daysOverdue,
+      status: updates.status || current.status
+    };
+
+    const aiRecoveryScore = await aiRecoveryPrediction(aiData);
+    const aiPriority = await aiSuggestedPriority(aiData, updates.priority || current.priority);
+    const aiFollowUpMessageText = await aiFollowUpMessage(aiData, updates.customerName || current.customerName);
+
+    const [updated] = await db.update(cases).set({
+      ...updates,
+      aiRecoveryScore,
+      aiPriority,
+      aiFollowUpMessage: aiFollowUpMessageText,
+      aiLastUpdatedAt: new Date()
+    }).where(eq(cases.id, id)).returning();
     return updated;
   }
 
