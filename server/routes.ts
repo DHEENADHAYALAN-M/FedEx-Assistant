@@ -8,8 +8,7 @@ import { api } from "@shared/routes";
 import {
   aiRecoveryPrediction,
   testAIConnection,
-} from "./aiService.js";
-import { i } from "node_modules/vite/dist/node/chunks/moduleRunnerTransport.js";
+} from "./aiService";
 
 /**
  * Register all API routes
