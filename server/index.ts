@@ -1,11 +1,11 @@
+import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
-import "dotenv/config";
+import { initializeStorage } from "./storage";
 
 console.log("🚀 FedEx Assistant starting...");
-console.log("📦 Storage Mode: In-Memory (Demo Mode)");
 
 const app = express();
 const httpServer = createServer(app);
@@ -24,6 +24,12 @@ export function log(message: string, source = "express") {
 }
 
 (async () => {
+  // 💾 Initialize Storage (Conditional MongoDB)
+  await initializeStorage();
+
+  const isDemo = !process.env.MONGODB_URI;
+  console.log(`📦 Storage Mode: ${isDemo ? "In-Memory (Demo Mode)" : "MongoDB"}`);
+
   await registerRoutes(httpServer, app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

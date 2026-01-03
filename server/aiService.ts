@@ -9,6 +9,7 @@ const openai = process.env.OPENAI_API_KEY
     })
   : null;
 
+// Log AI status once
 console.log("AI enabled:", !!process.env.OPENAI_API_KEY);
 
 export interface CaseAiData {
@@ -56,7 +57,7 @@ export async function aiRecoveryPrediction(
         {
           role: "system",
           content:
-            "You are a debt recovery analyst. Return ONLY a number between 0 and 100.",
+            "You are a debt recovery analyst. Return ONLY a number between 0 and 100. Be concise.",
         },
         {
           role: "user",
@@ -83,4 +84,20 @@ function fallbackRecovery(caseData: CaseAiData): number {
   let score = 100 - caseData.daysOverdue * 0.8;
   if (caseData.amount > 50000) score -= 10;
   return Math.max(0, Math.min(100, Math.round(score)));
+}
+
+/**
+ * === AI PRIORITY (STUBBED) ===
+ */
+export async function aiPriorityAssessment(caseData: CaseAiData): Promise<string> {
+  if (caseData.amount > 50000 || caseData.daysOverdue > 60) return "High";
+  if (caseData.amount > 20000) return "Medium";
+  return "Low";
+}
+
+/**
+ * === AI FOLLOW-UP GENERATION (STUBBED) ===
+ */
+export async function aiGenerateFollowUp(caseData: CaseAiData): Promise<string> {
+  return `Follow-up recommended for ${caseData.amount} overdue by ${caseData.daysOverdue} days.`;
 }

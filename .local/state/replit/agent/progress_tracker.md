@@ -10,3 +10,6 @@
 [x] 10. Audit project structure and fix broken imports in routes.ts
 [x] 11. Add .env.example for better configuration guidance
 [x] 12. Verify build and start consistency
+[x] 13. Implement conditional MongoDB storage initialization and logging
+[x] 14. Standardize AI service with stubbed priority and follow-up methods
+[x] 15. Fix LSP errors in routes.ts related to case updates

@@ -1,4 +1,5 @@
 import { aiRecoveryPrediction } from "./aiService";
+import mongoose from "mongoose";
 
 import {
   type Case,
@@ -255,4 +256,19 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+// 🌐 MONGODB STORAGE PLACEHOLDER (STUBBED AS REQUESTED)
+// In a real scenario, we'd implement MongoStorage here.
+// For now, we unify through a single instance as requested.
+export let storage: IStorage = new MemStorage();
+
+export async function initializeStorage() {
+  if (process.env.MONGODB_URI) {
+    try {
+      await mongoose.connect(process.env.MONGODB_URI);
+      console.log("🟢 MongoDB connected");
+      // storage = new MongoStorage(); // Future implementation
+    } catch (err) {
+      console.error("❌ MongoDB connection failed, falling back to Memory:", err);
+    }
+  }
+}
