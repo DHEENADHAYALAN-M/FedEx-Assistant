@@ -1,0 +1,117 @@
+You are a senior Node.js + TypeScript backend engineer.
+
+Context:
+This project is an Express + TypeScript app called "FedEx Assistant".
+It currently uses an in-memory storage (MemStorage) implementing an IStorage interface.
+MongoDB connection already exists via MONGODB_URI, but data is still stored in memory.
+AI recovery scores are computed and logged but not consistently persisted or shown in dashboard data.
+
+Your task is to COMPLETE the system, not redesign it.
+
+========================
+GOALS
+========================
+
+1. Implement REAL MongoDB persistence
+2. Keep the existing IStorage interface unchanged
+3. Add AI recovery score visibility in dashboard + case APIs
+4. Preserve all existing logic and routes
+5. Maintain safe fallbacks (memory if Mongo fails, AI fallback if quota fails)
+
+========================
+BACKEND TASKS
+========================
+
+A. MongoDB Storage
+- Create a new class MongoStorage that implements IStorage
+- Use Mongoose schemas for:
+  - cases
+  - dcas
+  - caseNotes
+  - uploadLogs
+- Fields must match @shared/schema exactly
+- Persist aiRecoveryScore, aiLastUpdatedAt, aiPriority, aiFollowUpMessage
+
+B. Storage Switching
+- In storage.ts:
+  - Export STORAGE_MODE ("memory" | "mongo")
+  - In initializeStorage():
+    - If MONGODB_URI is valid and connection succeeds:
+        STORAGE_MODE = "mongo"
+        storage = new MongoStorage()
+    - Else fallback to MemStorage
+- Log clearly which storage is active
+
+C. Seeding Logic Fix
+- Seed ONLY if:
+  - MongoDB is empty (no DCAs exist)
+- Do NOT reseed on every restart
+- Rename log from "Seeding memory storage" to "Seeding initial data"
+
+========================
+AI INTEGRATION TASKS
+========================
+
+D. AI Persistence
+- Ensure aiRecoveryPrediction results are saved to DB (not just console)
+- If OpenAI quota fails:
+  - Use fallback logic
+  - Still save fallback score
+- Never crash app due to AI failure
+
+E. AI Status API
+- Keep /api/admin/ai-status
+- Return:
+  {
+    enabled: boolean,
+    mode: "openai" | "fallback",
+    storage: STORAGE_MODE
+  }
+
+========================
+DASHBOARD FIX
+========================
+
+F. Dashboard Stats
+- Extend getDashboardStats to include:
+  - avgAiRecoveryScore
+  - highRiskCases (aiRecoveryScore < 40)
+- Ensure this works for BOTH MongoStorage and MemStorage
+
+G. Case APIs
+- Ensure /api/cases and /api/cases/:id return:
+  - aiRecoveryScore
+  - aiLastUpdatedAt
+- Do NOT change frontend routes, only data
+
+========================
+FRONTEND TASK (MINIMAL)
+========================
+
+H. Dashboard Display
+- Show:
+  - Average AI Recovery Score
+  - AI Enabled / Disabled status
+- If AI disabled, show "Rule-based scoring active"
+
+========================
+RULES
+========================
+
+- DO NOT remove existing files
+- DO NOT break current routes
+- DO NOT hardcode secrets
+- DO NOT require .env to be committed
+- Keep changes minimal and well-commented
+- Add comments explaining why changes are made
+
+========================
+DELIVERABLE
+========================
+
+- Fully working MongoDB-backed app
+- Persistent data visible in MongoDB Compass
+- AI scores visible in dashboard + APIs
+- Safe fallbacks everywhere
+
+Proceed step-by-step and explain changes clearly.
