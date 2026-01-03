@@ -3,11 +3,23 @@ import type { Server } from "http";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { addDays } from "date-fns";
+import { testAIConnection } from "./ai/openaiService";
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  // === ADMIN AI STATUS ===
+  app.get("/api/admin/ai-status", async (_req, res) => {
+    try {
+      const status = await testAIConnection();
+      res.json(status);
+    } catch (error) {
+      console.error("Admin AI status route error:", error);
+      res.status(500).json({ enabled: false, message: "Internal server error checking AI status" });
+    }
+  });
+
   // === DASHBOARD ===
   app.get(api.dashboard.stats.path, async (req, res) => {
     const dcaId = req.query.dcaId ? Number(req.query.dcaId) : undefined;
