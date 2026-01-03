@@ -117,7 +117,7 @@ export async function registerRoutes(
             region: row.Region,
             status: row.Status || "Assigned",
             priority,
-            assignedDcaId,
+            assignedDcaId: assignedDcaId ?? undefined,
             slaDeadline
           });
 
