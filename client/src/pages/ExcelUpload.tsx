@@ -16,13 +16,12 @@ import {
   UploadCloud, 
   FileSpreadsheet, 
   AlertCircle, 
-  CheckCircle2, 
-  XCircle,
   History
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 interface PreviewData {
   Case_ID: string;

@@ -143,11 +143,11 @@ export async function registerRoutes(
         errorCount: errors
       });
 
-      res.json({ processed, success: true, message: `Processed ${processed} cases with ${errors} errors.` });
+      return res.json({ processed, success: true, message: `Processed ${processed} cases with ${errors} errors.` });
 
     } catch (err) {
       console.error(err);
-      res.status(500).json({ message: "Import failed" });
+      return res.status(500).json({ success: false, message: "Import failed" });
     }
   });
 
