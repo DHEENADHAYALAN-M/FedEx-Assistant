@@ -1,6 +1,29 @@
-node_modules
-dist
+# OS
 .DS_Store
+
+# Node
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment variables
+.env
+
+# Build output
+dist
 server/public
+
+# Vite temp / backups
 vite.config.ts.*
+
+# Archives
 *.tar.gz
+
+# Editor
+.vscode
+.idea
+
+# Logs
+logs
+*.log

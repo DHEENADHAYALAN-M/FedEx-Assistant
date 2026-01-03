@@ -1,13 +1,15 @@
 import OpenAI from "openai";
 
-// Initialize OpenAI client with Replit-specific environment variables
-// Only create client if API key is available, otherwise AI features will use fallbacks
-const openai = process.env.AI_INTEGRATIONS_OPENAI_API_KEY
+/**
+ * Load OpenAI safely (works in dev + prod)
+ */
+const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({
-      apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
-      baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+      apiKey: process.env.OPENAI_API_KEY,
     })
   : null;
+
+console.log("AI enabled:", !!process.env.OPENAI_API_KEY);
 
 export interface CaseAiData {
   amount: number;
@@ -16,110 +18,69 @@ export interface CaseAiData {
 }
 
 /**
- * Predict recovery probability using AI with a rule-based fallback.
+ * === TEST AI CONNECTION (Admin check) ===
  */
-export async function aiRecoveryPrediction(caseData: CaseAiData): Promise<number> {
+export async function testAIConnection() {
   if (!openai) {
-    return fallbackRecoveryScore(caseData);
+    return { enabled: false, message: "AI not configured" };
   }
+
   try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-5",
-      messages: [
-        {
-          role: "system",
-          content: "You are a debt recovery risk analyst. Return ONLY a single number representing the probability of recovery (0-100) based on the debt details provided."
-        },
-        {
-          role: "user",
-          content: `Amount: ${caseData.amount}, Days Overdue: ${caseData.daysOverdue}, Status: ${caseData.status}`
-        }
-      ],
-      max_completion_tokens: 10,
+    await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [{ role: "user", content: "Say hi" }],
+      max_tokens: 5,
     });
 
-    const score = parseInt(response.choices[0]?.message?.content?.trim() || "0");
-    return isNaN(score) ? fallbackRecoveryScore(caseData) : Math.min(100, Math.max(0, score));
-  } catch (error) {
-    console.warn("AI Recovery Prediction failed, using fallback:", error);
-    return fallbackRecoveryScore(caseData);
+    return { enabled: true, message: "AI ready" };
+  } catch (err) {
+    console.error("AI test failed:", err);
+    return { enabled: false, message: "AI connection failed" };
   }
 }
 
-function fallbackRecoveryScore(caseData: CaseAiData): number {
+/**
+ * === AI RECOVERY SCORE (0–100) ===
+ */
+export async function aiRecoveryPrediction(
+  caseData: CaseAiData
+): Promise<number> {
+  if (!openai) {
+    return fallbackRecovery(caseData);
+  }
+
+  try {
+    const res = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are a debt recovery analyst. Return ONLY a number between 0 and 100.",
+        },
+        {
+          role: "user",
+          content: `Amount: ${caseData.amount}, Days Overdue: ${caseData.daysOverdue}, Status: ${caseData.status}`,
+        },
+      ],
+      max_tokens: 10,
+    });
+
+    const score = Number(res.choices[0]?.message?.content?.trim());
+    return isNaN(score)
+      ? fallbackRecovery(caseData)
+      : Math.max(0, Math.min(100, score));
+  } catch (err) {
+    console.warn("AI failed, using fallback:", err);
+    return fallbackRecovery(caseData);
+  }
+}
+
+/**
+ * === FALLBACK (NO AI / ERROR SAFE) ===
+ */
+function fallbackRecovery(caseData: CaseAiData): number {
   let score = 100 - caseData.daysOverdue * 0.8;
   if (caseData.amount > 50000) score -= 10;
-  return Math.min(100, Math.max(0, Math.round(score)));
-}
-
-/**
- * Suggest case priority using AI, ensuring it never downgrades rule-based risks.
- */
-export async function aiSuggestedPriority(caseData: CaseAiData, rulePriority: string): Promise<string> {
-  const priorities = ["Low", "Medium", "High"];
-  
-  if (!openai) {
-    return rulePriority;
-  }
-  try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-5",
-      messages: [
-        {
-          role: "system",
-          content: "You are a debt collection prioritizer. Suggest a priority: 'High', 'Medium', or 'Low' for this debt case."
-        },
-        {
-          role: "user",
-          content: `Amount: ${caseData.amount}, Days Overdue: ${caseData.daysOverdue}, Status: ${caseData.status}`
-        }
-      ],
-      max_completion_tokens: 10,
-    });
-
-    const aiPriority = response.choices[0]?.message?.content?.trim() || "Low";
-    
-    // Ensure we take the higher of rule-based or AI priority
-    const ruleIdx = priorities.indexOf(rulePriority);
-    const aiIdx = priorities.indexOf(aiPriority);
-    
-    return priorities[Math.max(ruleIdx, aiIdx === -1 ? 0 : aiIdx)];
-  } catch (error) {
-    console.warn("AI Suggested Priority failed, using rule-based:", error);
-    return rulePriority;
-  }
-}
-
-/**
- * Generate a professional follow-up reminder message.
- */
-export async function aiFollowUpMessage(caseData: CaseAiData, customerName: string): Promise<string> {
-  if (!openai) {
-    return fallbackFollowUp(customerName, caseData.amount);
-  }
-  try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-5",
-      messages: [
-        {
-          role: "system",
-          content: "Generate a professional, polite, and persuasive debt collection reminder message. Keep it concise."
-        },
-        {
-          role: "user",
-          content: `Customer: ${customerName}, Amount: ${caseData.amount}, Days Overdue: ${caseData.daysOverdue}`
-        }
-      ],
-      max_completion_tokens: 200,
-    });
-
-    return response.choices[0]?.message?.content?.trim() || fallbackFollowUp(customerName, caseData.amount);
-  } catch (error) {
-    console.warn("AI Follow-up Message failed, using fallback:", error);
-    return fallbackFollowUp(customerName, caseData.amount);
-  }
-}
-
-function fallbackFollowUp(customerName: string, amount: number): string {
-  return `Dear ${customerName}, this is a reminder regarding your outstanding balance of ${amount}. Please contact us to arrange payment.`;
+  return Math.max(0, Math.min(100, Math.round(score)));
 }

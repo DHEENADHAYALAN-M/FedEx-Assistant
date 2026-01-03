@@ -1,7 +1,14 @@
+import { aiRecoveryPrediction } from "./aiService";
+
 import {
-  type Case, type Dca, type CaseNote, type UploadLog,
-  type CreateCaseRequest, type UpdateCaseRequest,
-  type CreateDcaRequest, type UpdateDcaRequest,
+  type Case,
+  type Dca,
+  type CaseNote,
+  type UploadLog,
+  type CreateCaseRequest,
+  type UpdateCaseRequest,
+  type CreateDcaRequest,
+  type UpdateDcaRequest,
   type CreateNoteRequest,
   type DashboardStats
 } from "@shared/schema";
@@ -13,7 +20,7 @@ export interface IStorage {
   getDcaByRegion(region: string): Promise<Dca[]>;
   createDca(dca: CreateDcaRequest): Promise<Dca>;
   updateDca(id: number, updates: UpdateDcaRequest): Promise<Dca>;
-  getCases(filters?: { search?: string, status?: string, dcaId?: number }): Promise<(Case & { dcaName?: string })[]>;
+  getCases(filters?: { search?: string; status?: string; dcaId?: number }): Promise<(Case & { dcaName?: string })[]>;
   getCase(id: number): Promise<Case | undefined>;
   createCase(data: CreateCaseRequest): Promise<Case>;
   updateCase(id: number, updates: UpdateCaseRequest): Promise<Case>;
@@ -25,22 +32,18 @@ export interface IStorage {
 }
 
 export class MemStorage implements IStorage {
-  private dcas: Map<number, Dca>;
-  private cases: Map<number, Case>;
-  private notes: Map<number, CaseNote>;
-  private logs: Map<number, UploadLog>;
-  private currentId: { [key: string]: number };
+  private dcas = new Map<number, Dca>();
+  private cases = new Map<number, Case>();
+  private notes = new Map<number, CaseNote>();
+  private logs = new Map<number, UploadLog>();
+  private currentId = { dcas: 1, cases: 1, notes: 1, logs: 1 };
 
-  constructor() {
-    this.dcas = new Map();
-    this.cases = new Map();
-    this.notes = new Map();
-    this.logs = new Map();
-    this.currentId = { dcas: 1, cases: 1, notes: 1, logs: 1 };
-  }
+  /* ---------------- DCAs ---------------- */
 
   async getDcas(): Promise<Dca[]> {
-    return Array.from(this.dcas.values()).sort((a, b) => Number(b.slaScore) - Number(a.slaScore));
+    return Array.from(this.dcas.values()).sort(
+      (a, b) => Number(b.slaScore) - Number(a.slaScore)
+    );
   }
 
   async getDca(id: number): Promise<Dca | undefined> {
@@ -70,38 +73,56 @@ export class MemStorage implements IStorage {
   }
 
   async updateDca(id: number, updates: UpdateDcaRequest): Promise<Dca> {
-    const dca = await this.getDca(id);
+    const dca = this.dcas.get(id);
     if (!dca) throw new Error("DCA not found");
     const updated = { ...dca, ...updates };
     this.dcas.set(id, updated);
     return updated;
   }
 
-  async getCases(filters?: { search?: string, status?: string, dcaId?: number }): Promise<(Case & { dcaName?: string })[]> {
+  /* ---------------- CASES ---------------- */
+
+  async getCases(filters?: {
+    search?: string;
+    status?: string;
+    dcaId?: number;
+  }): Promise<(Case & { dcaName?: string })[]> {
     let allCases = Array.from(this.cases.values());
-    
-    if (filters?.status) allCases = allCases.filter(c => c.status === filters.status);
-    if (filters?.dcaId) allCases = allCases.filter(c => c.assignedDcaId === filters.dcaId);
+
+    if (filters?.status) {
+      allCases = allCases.filter(c => c.status === filters.status);
+    }
+    if (filters?.dcaId) {
+      allCases = allCases.filter(c => c.assignedDcaId === filters.dcaId);
+    }
     if (filters?.search) {
       const search = filters.search.toLowerCase();
-      allCases = allCases.filter(c => 
-        c.customerName.toLowerCase().includes(search) || 
-        c.caseIdentifier.toLowerCase().includes(search)
+      allCases = allCases.filter(
+        c =>
+          c.customerName.toLowerCase().includes(search) ||
+          c.caseIdentifier.toLowerCase().includes(search)
       );
     }
 
-    return allCases.map(c => ({
-      ...c,
-      dcaName: c.assignedDcaId ? this.dcas.get(c.assignedDcaId)?.name : undefined
-    })).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    return allCases
+      .map(c => ({
+        ...c,
+        dcaName: c.assignedDcaId
+          ? this.dcas.get(c.assignedDcaId)?.name
+          : undefined
+      }))
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }
 
   async getCase(id: number): Promise<Case | undefined> {
     return this.cases.get(id);
   }
 
+  /* ---------------- CREATE CASE (AI WIRED) ---------------- */
+
   async createCase(data: CreateCaseRequest): Promise<Case> {
     const id = this.currentId.cases++;
+
     const newCase: Case = {
       ...data,
       id,
@@ -113,19 +134,38 @@ export class MemStorage implements IStorage {
       status: data.status || "New",
       priority: data.priority || "Low",
       assignedDcaId: data.assignedDcaId || null,
-      slaDeadline: data.slaDeadline || null,
+      slaDeadline: data.slaDeadline || null
     };
+
+    // 🤖 AI Recovery Prediction (SAFE, NON-BLOCKING)
+    try {
+      const recoveryScore = await aiRecoveryPrediction({
+        amount: Number(data.amount),
+        daysOverdue: data.daysOverdue,
+        status: newCase.status
+      });
+
+      newCase.aiRecoveryScore = recoveryScore;
+      newCase.aiLastUpdatedAt = new Date();
+
+      console.log("🤖 AI Recovery Score:", recoveryScore);
+    } catch (error) {
+      console.warn("AI recovery prediction failed, continuing without AI", error);
+    }
+
     this.cases.set(id, newCase);
     return newCase;
   }
 
   async updateCase(id: number, updates: UpdateCaseRequest): Promise<Case> {
-    const current = await this.getCase(id);
+    const current = this.cases.get(id);
     if (!current) throw new Error("Case not found");
     const updated = { ...current, ...updates };
     this.cases.set(id, updated);
     return updated;
   }
+
+  /* ---------------- NOTES ---------------- */
 
   async getCaseNotes(caseId: number): Promise<CaseNote[]> {
     return Array.from(this.notes.values())
@@ -145,6 +185,8 @@ export class MemStorage implements IStorage {
     return newNote;
   }
 
+  /* ---------------- UPLOAD LOGS ---------------- */
+
   async createUploadLog(log: any): Promise<UploadLog> {
     const id = this.currentId.logs++;
     const newLog: UploadLog = {
@@ -159,26 +201,39 @@ export class MemStorage implements IStorage {
   }
 
   async getUploadLogs(): Promise<UploadLog[]> {
-    return Array.from(this.logs.values()).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    return Array.from(this.logs.values()).sort(
+      (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
+    );
   }
+
+  /* ---------------- DASHBOARD ---------------- */
 
   async getDashboardStats(dcaId?: number): Promise<DashboardStats> {
     let allCases = Array.from(this.cases.values());
-    if (dcaId) allCases = allCases.filter(c => c.assignedDcaId === dcaId);
+    if (dcaId) {
+      allCases = allCases.filter(c => c.assignedDcaId === dcaId);
+    }
 
     const total = allCases.length;
-    const pending = allCases.filter(c => !['Recovered', 'Escalated'].includes(c.status)).length;
-    const recovered = allCases.filter(c => c.status === 'Recovered').length;
-    const breaches = allCases.filter(c => 
-      c.slaDeadline && c.slaDeadline < new Date() && !['Recovered', 'Escalated'].includes(c.status)
+    const pending = allCases.filter(
+      c => !["Recovered", "Escalated"].includes(c.status)
+    ).length;
+    const recovered = allCases.filter(c => c.status === "Recovered").length;
+    const breaches = allCases.filter(
+      c =>
+        c.slaDeadline &&
+        c.slaDeadline < new Date() &&
+        !["Recovered", "Escalated"].includes(c.status)
     ).length;
 
-    const statusCounts: { [key: string]: number } = {};
-    const dcaCounts: { [key: string]: number } = {};
+    const statusCounts: Record<string, number> = {};
+    const dcaCounts: Record<string, number> = {};
 
     allCases.forEach(c => {
       statusCounts[c.status] = (statusCounts[c.status] || 0) + 1;
-      const dcaName = c.assignedDcaId ? this.dcas.get(c.assignedDcaId)?.name || 'Unassigned' : 'Unassigned';
+      const dcaName = c.assignedDcaId
+        ? this.dcas.get(c.assignedDcaId)?.name || "Unassigned"
+        : "Unassigned";
       dcaCounts[dcaName] = (dcaCounts[dcaName] || 0) + 1;
     });
 
@@ -187,8 +242,14 @@ export class MemStorage implements IStorage {
       pendingCases: pending,
       recoveredCases: recovered,
       slaBreaches: breaches,
-      casesByStatus: Object.entries(statusCounts).map(([name, value]) => ({ name, value })),
-      casesByDca: Object.entries(dcaCounts).map(([name, value]) => ({ name, value })),
+      casesByStatus: Object.entries(statusCounts).map(([name, value]) => ({
+        name,
+        value
+      })),
+      casesByDca: Object.entries(dcaCounts).map(([name, value]) => ({
+        name,
+        value
+      })),
       recoveryRate: total ? Math.round((recovered / total) * 100) : 0
     };
   }

@@ -2,6 +2,10 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
+import "dotenv/config";
+
+console.log("🚀 FedEx Assistant starting...");
+console.log("📦 Storage Mode: In-Memory (Demo Mode)");
 
 const app = express();
 const httpServer = createServer(app);
