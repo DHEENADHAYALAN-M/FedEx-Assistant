@@ -1,0 +1,115 @@
+You are operating in Autonomous Build Mode.
+
+This is a production-grade Express + TypeScript application called "FedEx Assistant".
+The project already has routes, AI logic, MongoDB connection code, and an IStorage abstraction.
+
+Your task is to COMPLETE the system, not refactor or redesign it.
+
+================================
+PRIMARY OBJECTIVES
+================================
+
+1. Implement a full MongoDB-backed storage layer
+2. Persist AI-generated fields and expose them to the dashboard
+3. Ensure safe fallbacks for AI and database
+4. Fix seeding and storage-mode logic bugs
+5. Ensure all changes are consistent across backend and frontend
+
+================================
+BACKEND REQUIREMENTS
+================================
+
+A. Storage Architecture
+- Keep IStorage interface unchanged
+- Implement MongoStorage using Mongoose
+- Collections:
+  - cases
+  - dcas
+  - caseNotes
+  - uploadLogs
+- Fields must exactly match @shared/schema
+
+B. Storage Switching
+- Implement initializeStorage()
+- Export STORAGE_MODE = "mongo" | "memory"
+- Logic:
+  - If MONGODB_URI exists AND connection succeeds → MongoStorage
+  - Else → MemStorage
+- Log actual active storage mode correctly
+
+C. Seeding Logic
+- Seed data ONLY if database is empty
+- Never reseed on restart
+- Use same seed logic for Mongo and Memory
+
+================================
+AI REQUIREMENTS
+================================
+
+D. AI Persistence
+- Persist:
+  - aiRecoveryScore
+  - aiLastUpdatedAt
+  - aiPriority
+  - aiFollowUpMessage
+- If OpenAI quota fails:
+  - Use fallback logic
+  - Still persist fallback result
+- Never crash application due to AI errors
+
+E. AI Status Endpoint
+- /api/admin/ai-status should return:
+  {
+    enabled: boolean,
+    mode: "openai" | "fallback",
+    storage: STORAGE_MODE
+  }
+
+================================
+DASHBOARD REQUIREMENTS
+================================
+
+F. Dashboard Data
+- Extend getDashboardStats to include:
+  - avgAiRecoveryScore
+  - highRiskCases (aiRecoveryScore < 40)
+- Works for both MongoStorage and MemStorage
+
+G. Case APIs
+- Ensure AI fields are returned by:
+  - /api/cases
+  - /api/cases/:id
+
+================================
+FRONTEND REQUIREMENTS
+================================
+
+H. Minimal UI Changes
+- Display:
+  - Average AI Recovery Score
+  - AI enabled / disabled status
+- If AI disabled:
+  - Show “Rule-based scoring active”
+
+================================
+RULES
+================================
+
+- DO NOT remove existing files
+- DO NOT break existing routes
+- DO NOT hardcode secrets
+- DO NOT commit .env
+- Keep changes minimal and well-commented
+- Validate logic end-to-end
+
+================================
+DELIVERABLE
+================================
+
+- Fully working MongoDB-backed system
+- Persistent data visible in MongoDB Compass
+- AI scores visible in dashboard
+- Clean startup logs
+- No regressions
+
+Proceed autonomously and ensure correctness.
