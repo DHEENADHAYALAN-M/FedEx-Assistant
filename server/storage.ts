@@ -154,7 +154,7 @@ export class MemStorage implements IStorage {
   async createCase(data: CreateCaseRequest): Promise<Case> {
     const id = this.currentId.cases++;
     const now = new Date();
-    const newCase: Case = { ...data, id, aiRecoveryScore: null, aiPriority: null, aiFollowUpMessage: null, aiLastUpdatedAt: null, createdAt: data.createdAt || now, lastUpdatedAt: now, status: data.status || "New", priority: data.priority || "Low", assignedDcaId: (data.assignedDcaId as number | null) || null, slaDeadline: data.slaDeadline || null };
+    const newCase: Case = { ...data, id, aiRecoveryScore: null, aiPriority: null, aiFollowUpMessage: null, aiLastUpdatedAt: null, createdAt: data.createdAt || now, lastUpdatedAt: now, status: data.status || "New", priority: data.priority || "Low", assignedDcaId: (data.assignedDcaId as any) || null, slaDeadline: data.slaDeadline || null };
     try {
       const recoveryScore = await aiRecoveryPrediction({ amount: Number(data.amount), daysOverdue: data.daysOverdue, status: newCase.status });
       newCase.aiRecoveryScore = recoveryScore;
@@ -298,18 +298,20 @@ export class MongoStorage implements IStorage {
         assignedDcaId: obj.assignedDcaId ?? null,
         slaDeadline: obj.slaDeadline ?? null,
         dcaName: obj.assignedDcaId ? dcaMap.get(obj.assignedDcaId) : undefined 
-      } as Case & { dcaName?: string };
+      } as any;
     });
   }
-  async getCase(id: number): Promise<Case | undefined> {
+  async getCase(id: number): Promise<(Case & { dcaName?: string }) | undefined> {
     const doc = await CaseModel.findOne({ id });
     if (!doc) return undefined;
     const obj = doc.toObject();
+    const dca = obj.assignedDcaId ? await DcaModel.findOne({ id: obj.assignedDcaId }) : null;
     return { 
       ...obj, 
       assignedDcaId: obj.assignedDcaId ?? null,
-      slaDeadline: obj.slaDeadline ?? null
-    } as Case;
+      slaDeadline: obj.slaDeadline ?? null,
+      dcaName: dca ? dca.name : undefined
+    } as Case & { dcaName?: string };
   }
   async getCaseByIdentifier(identifier: string): Promise<Case | undefined> {
     const doc = await CaseModel.findOne({ caseIdentifier: identifier });
@@ -409,8 +411,8 @@ export class MongoStorage implements IStorage {
     const recovered = allCases.filter(c => c.status === "Recovered").length;
     const breaches = allCases.filter(c => c.slaDeadline && c.slaDeadline < new Date() && !["Recovered", "Escalated"].includes(c.status)).length;
     
-    const unassignedCount = allCases.filter(c => c.assignedDcaId === null).length;
-    const casesWithScore = allCases.filter(c => c.aiRecoveryScore !== null);
+    const unassignedCount = allCases.filter(c => !c.assignedDcaId).length;
+    const casesWithScore = allCases.filter(c => c.aiRecoveryScore != null);
     const avgScore = casesWithScore.length > 0 
       ? Math.round(casesWithScore.reduce((acc, c) => acc + (c.aiRecoveryScore || 0), 0) / casesWithScore.length)
       : 0;
@@ -428,7 +430,7 @@ export class MongoStorage implements IStorage {
       dcaCounts[dcaName] = (dcaCounts[dcaName] || 0) + 1;
     });
 
-    const aiStatus = await aiRecoveryPrediction({ amount: 1000, daysOverdue: 30, status: "New" }).then(() => true).catch(() => false);
+    const aiStatus = !!process.env.OPENAI_API_KEY;
 
     return {
       totalCases: total, pendingCases: pending, recoveredCases: recovered, slaBreaches: breaches,
