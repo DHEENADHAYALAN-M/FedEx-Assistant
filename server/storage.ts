@@ -312,9 +312,14 @@ export class MongoStorage implements IStorage {
     if (filters?.status && filters.status !== "all") query.status = filters.status;
     if (filters?.dcaId) query.assignedDcaId = filters.dcaId;
     if (filters?.search) {
+      const searchRegex = { $regex: filters.search, $options: "i" };
+      const matchingDcas = await DcaModel.find({ name: searchRegex });
+      const dcaIds = matchingDcas.map(d => d.id);
+      
       query.$or = [
-        { customerName: { $regex: filters.search, $options: "i" } },
-        { caseIdentifier: { $regex: filters.search, $options: "i" } }
+        { customerName: searchRegex },
+        { caseIdentifier: searchRegex },
+        { assignedDcaId: { $in: dcaIds } }
       ];
     }
     const cases = await CaseModel.find(query).sort({ createdAt: -1 });
