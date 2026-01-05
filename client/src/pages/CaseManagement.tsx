@@ -30,6 +30,7 @@ import { Search, Filter, RefreshCw, FileText } from "lucide-react";
 import CaseDetailView from "../components/CaseDetailView";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { format } from "date-fns";
 
 export default function CaseManagement() {
   const [search, setSearch] = useState("");
@@ -114,6 +115,7 @@ export default function CaseManagement() {
                 <TableHead className="font-semibold">Priority</TableHead>
                 <TableHead className="font-semibold text-center">AI Score</TableHead>
                 <TableHead className="font-semibold">Status</TableHead>
+                <TableHead className="font-semibold">Last Updated</TableHead>
                 <TableHead className="font-semibold">Assigned DCA</TableHead>
                 <TableHead className="font-semibold text-right">Actions</TableHead>
               </TableRow>
@@ -180,6 +182,9 @@ export default function CaseManagement() {
                       <span className={cn("px-2.5 py-1 rounded-full text-xs font-medium border", getStatusColor(item.status))}>
                         {item.status}
                       </span>
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                      {format(new Date(item.lastUpdatedAt), "MMM d, HH:mm")}
                     </TableCell>
                     <TableCell className="text-muted-foreground">{item.dcaName || "Unassigned"}</TableCell>
                     <TableCell className="text-right">
