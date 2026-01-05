@@ -75,6 +75,8 @@ export async function registerRoutes(
     let skippedCount = 0;
 
     const now = new Date();
+    const dcas = await storage.getDcas();
+
     for (const row of casesData) {
       try {
         // Check if case already exists by caseIdentifier
@@ -82,6 +84,15 @@ export async function registerRoutes(
         if (existingCase) {
           skippedCount++;
           continue;
+        }
+
+        // Automatic DCA Assignment based on region
+        const regionalDcas = dcas.filter(d => d.region === String(row.Region));
+        let assignedDcaId = null;
+        
+        if (regionalDcas.length > 0) {
+          // Simplistic workload assignment: pick DCA with fewest active cases
+          assignedDcaId = regionalDcas.sort((a, b) => a.activeCases - b.activeCases)[0].id;
         }
 
         await storage.createCase({
@@ -92,6 +103,7 @@ export async function registerRoutes(
           region: String(row.Region),
           status: row.Status || "New",
           priority: "Low",
+          assignedDcaId,
           createdAt: now
         } as any);
         successCount++;
