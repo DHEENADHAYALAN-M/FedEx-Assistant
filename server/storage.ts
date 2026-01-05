@@ -154,7 +154,7 @@ export class MemStorage implements IStorage {
   async createCase(data: CreateCaseRequest): Promise<Case> {
     const id = this.currentId.cases++;
     const now = new Date();
-    const newCase: Case = { ...data, id, aiRecoveryScore: null, aiPriority: null, aiFollowUpMessage: null, aiLastUpdatedAt: null, createdAt: data.createdAt || now, lastUpdatedAt: now, status: data.status || "New", priority: data.priority || "Low", assignedDcaId: data.assignedDcaId || null, slaDeadline: data.slaDeadline || null };
+    const newCase: Case = { ...data, id, aiRecoveryScore: null, aiPriority: null, aiFollowUpMessage: null, aiLastUpdatedAt: null, createdAt: data.createdAt || now, lastUpdatedAt: now, status: data.status || "New", priority: data.priority || "Low", assignedDcaId: (data.assignedDcaId as number | null) || null, slaDeadline: data.slaDeadline || null };
     try {
       const recoveryScore = await aiRecoveryPrediction({ amount: Number(data.amount), daysOverdue: data.daysOverdue, status: newCase.status });
       newCase.aiRecoveryScore = recoveryScore;
@@ -209,7 +209,10 @@ export class MemStorage implements IStorage {
       casesByStatus: Object.entries(statusCounts).map(([name, value]) => ({ name, value })),
       casesByDca: Object.entries(dcaCounts).map(([name, value]) => ({ name, value })),
       casesByPriority: Object.entries(priorityCounts).map(([name, value]) => ({ name, value })),
-      recoveryRate: total ? Math.round((recovered / total) * 100) : 0
+      recoveryRate: total ? Math.round((recovered / total) * 100) : 0,
+      unassignedCasesCount: 0,
+      averageRecoveryScore: 0,
+      aiEnabled: false
     };
   }
 
