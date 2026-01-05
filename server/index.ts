@@ -3,7 +3,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
-import { initializeStorage } from "./storage";
+// import { initializeStorage } from "./storage";
 
 console.log("🚀 FedEx Assistant starting...");
 
@@ -24,11 +24,10 @@ export function log(message: string, source = "express") {
 }
 
 (async () => {
-  // 💾 Initialize Storage (Conditional MongoDB)
-  await initializeStorage();
+  // 💾 Initialize Storage (PostgreSQL)
+  // await initializeStorage(); // No longer needed as we use PostgresStorage directly
 
-  const isDemo = !process.env.MONGODB_URI;
-  console.log(`📦 Storage Mode: ${isDemo ? "In-Memory (Demo Mode)" : "MongoDB"}`);
+  console.log(`📦 Storage Mode: PostgreSQL`);
 
   await registerRoutes(httpServer, app);
 

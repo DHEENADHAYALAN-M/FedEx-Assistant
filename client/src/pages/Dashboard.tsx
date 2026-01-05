@@ -88,48 +88,32 @@ export default function Dashboard() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="relative group">
-          <div className="absolute -inset-0.5 bg-gradient-to-r from-primary to-blue-600 rounded-2xl blur opacity-10 group-hover:opacity-20 transition duration-500"></div>
-          <StatCard 
-            title="Total Inbound Cases" 
-            value={stats.totalCases} 
-            icon={Users} 
-            trend="+12.5%" 
-            trendUp={true} 
-            className="relative bg-white border-slate-100 shadow-xl shadow-slate-200/50"
-          />
-        </div>
-        <div className="relative group">
-          <div className="absolute -inset-0.5 bg-gradient-to-r from-orange-500 to-amber-500 rounded-2xl blur opacity-10 group-hover:opacity-20 transition duration-500"></div>
-          <StatCard 
-            title="Active Operations" 
-            value={stats.pendingCases} 
-            icon={Activity} 
-            className="relative bg-white border-slate-100 shadow-xl shadow-slate-200/50 border-l-4 border-l-orange-500"
-          />
-        </div>
-        <div className="relative group">
-          <div className="absolute -inset-0.5 bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl blur opacity-10 group-hover:opacity-20 transition duration-500"></div>
-          <StatCard 
-            title="Total Recovery" 
-            value={stats.recoveredCases} 
-            icon={CheckCircle2} 
-            trend="+5.2%" 
-            trendUp={true} 
-            className="relative bg-white border-slate-100 shadow-xl shadow-slate-200/50 border-l-4 border-l-green-500"
-          />
-        </div>
-        <div className="relative group">
-          <div className="absolute -inset-0.5 bg-gradient-to-r from-red-500 to-rose-500 rounded-2xl blur opacity-10 group-hover:opacity-20 transition duration-500"></div>
-          <StatCard 
-            title="Risk Alerts" 
-            value={stats.slaBreaches} 
-            icon={AlertTriangle} 
-            trend="-2.1%" 
-            trendUp={false} 
-            className="relative bg-white border-slate-100 shadow-xl shadow-slate-200/50 border-l-4 border-l-red-500"
-          />
-        </div>
+        <StatCard 
+          title="Total Inbound Cases" 
+          value={stats.totalCases} 
+          icon={Users} 
+          trend="+12.5%" 
+          trendUp={true} 
+        />
+        <StatCard 
+          title="Active Operations" 
+          value={stats.pendingCases} 
+          icon={Activity} 
+        />
+        <StatCard 
+          title="Total Recovery" 
+          value={stats.recoveredCases} 
+          icon={CheckCircle2} 
+          trend="+5.2%" 
+          trendUp={true} 
+        />
+        <StatCard 
+          title="Risk Alerts" 
+          value={stats.slaBreaches} 
+          icon={AlertTriangle} 
+          trend="-2.1%" 
+          trendUp={false} 
+        />
       </div>
 
       {/* Main Insights Section */}

@@ -1,5 +1,10 @@
-import { LucideIcon, TrendingUp, TrendingDown } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface StatCardProps {
@@ -11,39 +16,36 @@ interface StatCardProps {
   className?: string;
 }
 
-export function StatCard({ title, value, icon: Icon, trend, trendUp, className }: StatCardProps) {
+export function StatCard({ 
+  title, 
+  value, 
+  icon: Icon, 
+  trend,
+  trendUp,
+  className
+}: StatCardProps) {
   return (
-    <Card className={cn("overflow-hidden group hover:scale-[1.02] transition-all duration-300", className)}>
-      <CardContent className="p-6">
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">
-              {title}
-            </p>
-            <h3 className="text-2xl font-bold text-slate-900 tracking-tight">
-              {typeof value === 'number' ? value.toLocaleString() : value}
-            </h3>
-            {trend && (
-              <div className="flex items-center gap-1 mt-1">
-                {trendUp ? (
-                  <TrendingUp className="h-3 w-3 text-green-500" />
-                ) : (
-                  <TrendingDown className="h-3 w-3 text-red-500" />
-                )}
-                <span className={cn(
-                  "text-[10px] font-bold",
-                  trendUp ? "text-green-600" : "text-red-600"
-                )}>
-                  {trend}
-                </span>
-                <span className="text-[10px] text-slate-400 font-medium">vs last month</span>
-              </div>
-            )}
-          </div>
-          <div className="h-12 w-12 rounded-2xl bg-slate-50 flex items-center justify-center group-hover:bg-primary/5 transition-colors duration-300">
-            <Icon className="h-6 w-6 text-slate-400 group-hover:text-primary transition-colors duration-300" />
-          </div>
+    <Card className={cn("hover-elevate transition-all duration-200 border shadow-sm", className)}>
+      <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+          {title}
+        </CardTitle>
+        <div className="p-2 bg-primary/10 rounded-lg">
+          <Icon className="h-4 w-4 text-primary" />
         </div>
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold tabular-nums tracking-tight">
+          {typeof value === 'number' ? value.toLocaleString() : value}
+        </div>
+        {trend && (
+          <p className={cn(
+            "text-xs mt-1 font-medium",
+            trendUp ? "text-green-600" : "text-red-600"
+          )}>
+            {trend} <span className="text-muted-foreground font-normal">vs last month</span>
+          </p>
+        )}
       </CardContent>
     </Card>
   );
