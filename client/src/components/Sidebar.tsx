@@ -21,8 +21,14 @@ const navigation = [
   { name: "Upload History", href: "/history", icon: History },
 ];
 
+interface HealthData {
+  db?: { status: string; message: string };
+  ai?: { status: string; message: string };
+  storage?: { status: string; mode: string };
+}
+
 function SystemHealth() {
-  const { data: health } = useQuery({
+  const { data: health } = useQuery<HealthData>({
     queryKey: ["/api/admin/health"],
     refetchInterval: 10000,
   });
