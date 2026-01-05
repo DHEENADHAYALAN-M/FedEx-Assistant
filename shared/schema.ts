@@ -46,10 +46,10 @@ export const uploadLogs = pgTable("upload_logs", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const insertDcaSchema = createInsertSchema(dcas).omit({ id: true, createdAt: true });
-export const insertCaseSchema = createInsertSchema(cases).omit({ id: true, createdAt: true, lastUpdatedAt: true });
-export const insertCaseNoteSchema = createInsertSchema(caseNotes).omit({ id: true, createdAt: true });
-export const insertUploadLogSchema = createInsertSchema(uploadLogs).omit({ id: true, createdAt: true });
+export const insertDcaSchema = createInsertSchema(dcas);
+export const insertCaseSchema = createInsertSchema(cases);
+export const insertCaseNoteSchema = createInsertSchema(caseNotes);
+export const insertUploadLogSchema = createInsertSchema(uploadLogs);
 
 export type Dca = typeof dcas.$inferSelect;
 export type InsertDca = z.infer<typeof insertDcaSchema>;

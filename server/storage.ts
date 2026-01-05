@@ -125,7 +125,7 @@ export class PostgresStorage implements IStorage {
     const now = new Date();
     const insertData: any = { 
       ...data, 
-      createdAt: data.createdAt || now, 
+      createdAt: (data as any).createdAt || now, 
       lastUpdatedAt: now 
     };
 
