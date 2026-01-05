@@ -49,11 +49,13 @@ export default function Dashboard() {
   }
 
   // Priority Distribution Data
-  const pieData = stats.casesByPriority || [
-    { name: 'High', value: 0 },
-    { name: 'Medium', value: 0 },
-    { name: 'Low', value: 0 },
-  ];
+  const pieData = stats.casesByPriority?.filter((p: any) => p.value > 0).length > 0 
+    ? stats.casesByPriority 
+    : [
+      { name: 'High', value: 0 },
+      { name: 'Medium', value: 0 },
+      { name: 'Low', value: 0 },
+    ];
 
   const isAdmin = role === "admin";
 
