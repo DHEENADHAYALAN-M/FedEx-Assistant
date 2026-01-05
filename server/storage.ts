@@ -89,6 +89,7 @@ export interface IStorage {
   updateDca(id: number, updates: UpdateDcaRequest): Promise<Dca>;
   getCases(filters?: { search?: string; status?: string; dcaId?: number }): Promise<(Case & { dcaName?: string })[]>;
   getCase(id: number): Promise<Case | undefined>;
+  getCaseByIdentifier(identifier: string): Promise<Case | undefined>;
   createCase(data: CreateCaseRequest): Promise<Case>;
   updateCase(id: number, updates: UpdateCaseRequest): Promise<Case>;
   getCaseNotes(caseId: number): Promise<CaseNote[]>;
@@ -140,6 +141,9 @@ export class MemStorage implements IStorage {
     return allCases.map(c => ({ ...c, dcaName: c.assignedDcaId ? this.dcas.get(c.assignedDcaId)?.name : undefined })).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }
   async getCase(id: number): Promise<Case | undefined> { return this.cases.get(id); }
+  async getCaseByIdentifier(identifier: string): Promise<Case | undefined> {
+    return Array.from(this.cases.values()).find(c => c.caseIdentifier === identifier);
+  }
   async createCase(data: CreateCaseRequest): Promise<Case> {
     const id = this.currentId.cases++;
     const newCase: Case = { ...data, id, aiRecoveryScore: null, aiPriority: null, aiFollowUpMessage: null, aiLastUpdatedAt: null, createdAt: new Date(), status: data.status || "New", priority: data.priority || "Low", assignedDcaId: data.assignedDcaId || null, slaDeadline: data.slaDeadline || null };
@@ -256,6 +260,16 @@ export class MongoStorage implements IStorage {
   }
   async getCase(id: number): Promise<Case | undefined> {
     const doc = await CaseModel.findOne({ id });
+    if (!doc) return undefined;
+    const obj = doc.toObject();
+    return { 
+      ...obj, 
+      assignedDcaId: obj.assignedDcaId ?? null,
+      slaDeadline: obj.slaDeadline ?? null
+    } as Case;
+  }
+  async getCaseByIdentifier(identifier: string): Promise<Case | undefined> {
+    const doc = await CaseModel.findOne({ caseIdentifier: identifier });
     if (!doc) return undefined;
     const obj = doc.toObject();
     return { 

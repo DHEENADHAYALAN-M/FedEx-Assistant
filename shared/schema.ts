@@ -16,6 +16,7 @@ export const insertCaseSchema = z.object({
   priority: z.string().optional().default("Low"),
   assignedDcaId: z.number().optional(),
   slaDeadline: z.date().optional(),
+  createdAt: z.date().optional(),
 });
 
 export const insertCaseNoteSchema = z.object({

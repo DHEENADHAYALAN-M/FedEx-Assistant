@@ -72,17 +72,18 @@ export async function registerRoutes(
     const { filename, cases: casesData } = req.body;
     let successCount = 0;
     let errorCount = 0;
-
-    // Clear existing cases to prevent duplicates and maintain practical data
-    try {
-      await storage.clearAllCases();
-    } catch (error) {
-      console.error("Error clearing existing cases:", error);
-    }
+    let skippedCount = 0;
 
     const now = new Date();
     for (const row of casesData) {
       try {
+        // Check if case already exists by caseIdentifier
+        const existingCase = await storage.getCaseByIdentifier(String(row.Case_ID));
+        if (existingCase) {
+          skippedCount++;
+          continue;
+        }
+
         await storage.createCase({
           caseIdentifier: String(row.Case_ID),
           customerName: String(row.Customer_Name),
@@ -91,7 +92,7 @@ export async function registerRoutes(
           region: String(row.Region),
           status: row.Status || "New",
           priority: "Low",
-          createdAt: now // Use current time for all imported cases
+          createdAt: now
         } as any);
         successCount++;
       } catch (error) {
@@ -109,8 +110,9 @@ export async function registerRoutes(
 
     res.json({
       processed: successCount,
-      success: successCount > 0,
-      message: `Imported ${successCount} cases with ${errorCount} errors.`
+      skipped: skippedCount,
+      success: successCount > 0 || skippedCount > 0,
+      message: `Imported ${successCount} cases, skipped ${skippedCount} duplicates, with ${errorCount} errors.`
     });
   });
 
