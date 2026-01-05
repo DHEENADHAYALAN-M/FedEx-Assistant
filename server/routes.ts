@@ -81,7 +81,8 @@ export async function registerRoutes(
           amount: String(row.Amount),
           daysOverdue: Number(row.Days_Overdue),
           region: String(row.Region),
-          status: row.Status || "New"
+          status: row.Status || "New",
+          priority: "Low"
         });
         successCount++;
       } catch (error) {
