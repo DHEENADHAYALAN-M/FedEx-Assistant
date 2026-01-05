@@ -249,23 +249,29 @@ export class MongoStorage implements IStorage {
       return { 
         ...obj, 
         assignedDcaId: obj.assignedDcaId ?? null,
+        slaDeadline: obj.slaDeadline ?? null,
         dcaName: obj.assignedDcaId ? dcaMap.get(obj.assignedDcaId) : undefined 
-      };
+      } as Case & { dcaName?: string };
     });
   }
   async getCase(id: number): Promise<Case | undefined> {
     const doc = await CaseModel.findOne({ id });
     if (!doc) return undefined;
     const obj = doc.toObject();
-    return { ...obj, assignedDcaId: obj.assignedDcaId ?? null };
+    return { 
+      ...obj, 
+      assignedDcaId: obj.assignedDcaId ?? null,
+      slaDeadline: obj.slaDeadline ?? null
+    } as Case;
   }
   async createCase(data: CreateCaseRequest): Promise<Case> {
     const id = await getNextId("cases");
     const docData: any = { 
       ...data, 
       id, 
-      createdAt: new Date(),
-      assignedDcaId: data.assignedDcaId ?? null
+      createdAt: data.createdAt || new Date(),
+      assignedDcaId: data.assignedDcaId ?? null,
+      slaDeadline: data.slaDeadline ?? null
     };
     try {
       const score = await aiRecoveryPrediction({ amount: Number(data.amount), daysOverdue: data.daysOverdue, status: data.status || "New" });
@@ -274,13 +280,21 @@ export class MongoStorage implements IStorage {
     } catch (e) { console.warn("AI score failed", e); }
     const doc = await CaseModel.create(docData);
     const obj = doc.toObject();
-    return { ...obj, assignedDcaId: obj.assignedDcaId ?? null };
+    return { 
+      ...obj, 
+      assignedDcaId: obj.assignedDcaId ?? null,
+      slaDeadline: obj.slaDeadline ?? null
+    } as Case;
   }
   async updateCase(id: number, updates: UpdateCaseRequest): Promise<Case> {
     const doc = await CaseModel.findOneAndUpdate({ id }, updates, { new: true });
     if (!doc) throw new Error("Case not found");
     const obj = doc.toObject();
-    return { ...obj, assignedDcaId: obj.assignedDcaId ?? null };
+    return { 
+      ...obj, 
+      assignedDcaId: obj.assignedDcaId ?? null,
+      slaDeadline: obj.slaDeadline ?? null
+    } as Case;
   }
   async getCaseNotes(caseId: number): Promise<CaseNote[]> {
     const docs = await NoteModel.find({ caseId }).sort("-createdAt");
