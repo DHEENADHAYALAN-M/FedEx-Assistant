@@ -147,7 +147,15 @@ export class MemStorage implements IStorage {
     }
     return allCases.map(c => ({ ...c, dcaName: c.assignedDcaId ? this.dcas.get(c.assignedDcaId)?.name : undefined })).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }
-  async getCase(id: number): Promise<Case | undefined> { return this.cases.get(id); }
+  async getCase(id: number): Promise<(Case & { dcaName?: string }) | undefined> {
+    const c = this.cases.get(id);
+    if (!c) return undefined;
+    const dca = c.assignedDcaId ? this.dcas.get(c.assignedDcaId) : null;
+    return {
+      ...c,
+      dcaName: dca ? dca.name : undefined
+    };
+  }
   async getCaseByIdentifier(identifier: string): Promise<Case | undefined> {
     return Array.from(this.cases.values()).find(c => c.caseIdentifier === identifier);
   }
@@ -171,7 +179,10 @@ export class MemStorage implements IStorage {
     return updated;
   }
   async getCaseNotes(caseId: number): Promise<CaseNote[]> {
-    return Array.from(this.notes.values()).filter(n => n.caseId === caseId).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    const allNotes = Array.from(this.notes.values());
+    return allNotes
+      .filter(n => n.caseId === caseId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }
   async createCaseNote(note: CreateNoteRequest): Promise<CaseNote> {
     const id = this.currentId.notes++;
@@ -224,7 +235,7 @@ export class MemStorage implements IStorage {
 
 export class MongoStorage implements IStorage {
   async getDcas(): Promise<Dca[]> {
-    const docs = await DcaModel.find().sort("-slaScore");
+    const docs = await DcaModel.find().sort({ slaScore: -1 });
     const dcas = docs.map(d => d.toObject());
     const allCases = await CaseModel.find();
     
@@ -288,7 +299,7 @@ export class MongoStorage implements IStorage {
         { caseIdentifier: { $regex: filters.search, $options: "i" } }
       ];
     }
-    const cases = await CaseModel.find(query).sort("-createdAt");
+    const cases = await CaseModel.find(query).sort({ createdAt: -1 });
     const dcas = await DcaModel.find();
     const dcaMap = new Map(dcas.map(d => [d.id, d.name]));
     return cases.map(c => {
@@ -341,6 +352,19 @@ export class MongoStorage implements IStorage {
     } catch (e) { console.warn("AI score failed", e); }
     const doc = await CaseModel.create(docData);
     const obj = doc.toObject();
+
+    // System note for assignment if DCA was assigned during creation
+    if (obj.assignedDcaId) {
+      const dca = await DcaModel.findOne({ id: obj.assignedDcaId });
+      if (dca) {
+        await this.createCaseNote({
+          caseId: obj.id,
+          note: `System: Case assigned to agency ${dca.name} upon creation.`,
+          isSystemGenerated: true
+        });
+      }
+    }
+
     return { 
       ...obj, 
       assignedDcaId: obj.assignedDcaId ?? null,
@@ -386,7 +410,7 @@ export class MongoStorage implements IStorage {
     } as Case;
   }
   async getCaseNotes(caseId: number): Promise<CaseNote[]> {
-    const docs = await NoteModel.find({ caseId }).sort("-createdAt");
+    const docs = await NoteModel.find({ caseId }).sort({ createdAt: -1 });
     return docs.map(d => d.toObject());
   }
   async createCaseNote(note: CreateNoteRequest): Promise<CaseNote> {
@@ -400,7 +424,7 @@ export class MongoStorage implements IStorage {
     return doc.toObject();
   }
   async getUploadLogs(): Promise<UploadLog[]> {
-    const docs = await LogModel.find().sort("-createdAt");
+    const docs = await LogModel.find().sort({ createdAt: -1 });
     return docs.map(d => d.toObject());
   }
   async getDashboardStats(dcaId?: number): Promise<DashboardStats> {
@@ -441,7 +465,7 @@ export class MongoStorage implements IStorage {
       unassignedCasesCount: unassignedCount,
       averageRecoveryScore: avgScore,
       aiEnabled: aiStatus
-    };
+    } as any;
   }
 
   async clearAllCases(): Promise<void> {
