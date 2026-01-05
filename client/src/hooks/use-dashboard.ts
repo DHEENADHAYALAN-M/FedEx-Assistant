@@ -7,6 +7,7 @@ export function useDashboardStats() {
   
   return useQuery({
     queryKey: [api.dashboard.stats.path, role, selectedDcaId],
+    refetchInterval: 5000, // Refresh dashboard stats every 5 seconds
     queryFn: async () => {
       const url = new URL(api.dashboard.stats.path, window.location.origin);
       if (role === "dca" && selectedDcaId) {

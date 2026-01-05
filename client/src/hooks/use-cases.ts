@@ -18,6 +18,7 @@ export function useCases(filters: CaseFilters = {}) {
   
   return useQuery({
     queryKey,
+    refetchInterval: 5000, // Refresh case list every 5 seconds
     queryFn: async () => {
       // Build URL with query params manually since buildUrl only handles path params
       const url = new URL(api.cases.list.path, window.location.origin);

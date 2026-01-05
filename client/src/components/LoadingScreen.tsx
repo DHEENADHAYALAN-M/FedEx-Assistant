@@ -1,7 +1,19 @@
 import { motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
 
 export function LoadingScreen() {
+  const [show, setShow] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShow(false);
+    }, 10000); // 10 seconds minimum
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (!show) return null;
+
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm">
       <div className="flex flex-col items-center gap-4">
