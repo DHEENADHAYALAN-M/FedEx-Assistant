@@ -246,9 +246,22 @@ export class MongoStorage implements IStorage {
     
     return dcas.map(dca => {
       const dcaCases = allCases.filter(c => c.assignedDcaId === dca.id);
+      const total = dcaCases.length;
       const active = dcaCases.filter(c => !["Recovered", "Escalated"].includes(c.status)).length;
       const recovered = dcaCases.filter(c => c.status === "Recovered").length;
-      return { ...dca, activeCases: active, recoveredCases: recovered };
+      const recoveryRate = total ? Math.round((recovered / total) * 100) : 0;
+      
+      // SLA calculation: % of cases not breached
+      const breaches = dcaCases.filter(c => c.slaDeadline && c.slaDeadline < new Date() && !["Recovered", "Escalated"].includes(c.status)).length;
+      const slaPerformance = total ? Math.round(((total - breaches) / total) * 100) : 100;
+
+      return { 
+        ...dca, 
+        activeCases: active, 
+        recoveredCases: recovered,
+        recoveryRate,
+        slaScore: slaPerformance.toString()
+      };
     });
   }
   async getDca(id: number): Promise<Dca | undefined> {

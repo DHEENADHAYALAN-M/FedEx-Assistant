@@ -39,6 +39,7 @@ export type Dca = {
   region: string;
   activeCases: number;
   recoveredCases: number;
+  recoveryRate?: number;
   slaScore: string;
   createdAt: Date;
 };
