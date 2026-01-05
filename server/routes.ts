@@ -95,6 +95,14 @@ export async function registerRoutes(
           assignedDcaId = regionalDcas.sort((a, b) => a.activeCases - b.activeCases)[0].id;
         }
 
+        // Automatic Priority Calculation
+        let priority = "Low";
+        if (Number(row.Amount) > 50000 || Number(row.Days_Overdue) > 60) {
+          priority = "High";
+        } else if (Number(row.Amount) > 20000) {
+          priority = "Medium";
+        }
+
         await storage.createCase({
           caseIdentifier: String(row.Case_ID),
           customerName: String(row.Customer_Name),
@@ -102,7 +110,7 @@ export async function registerRoutes(
           daysOverdue: Number(row.Days_Overdue),
           region: String(row.Region),
           status: row.Status || "New",
-          priority: "Low",
+          priority,
           assignedDcaId,
           createdAt: now
         } as any);

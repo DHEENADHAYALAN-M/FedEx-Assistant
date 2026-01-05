@@ -79,14 +79,22 @@ export default function ExcelUpload() {
         setUploadProgress(60);
 
         // Simple validation mapping
-        const mappedData = json.map(row => ({
-          Case_ID: row['Case_ID'] || row['Case ID'] || '',
-          Customer_Name: row['Customer_Name'] || row['Customer Name'] || '',
-          Amount: row['Amount'] || 0,
-          Days_Overdue: row['Days_Overdue'] || row['Days Overdue'] || 0,
-          Region: row['Region'] || '',
-          Status: 'New'
-        })).filter(item => item.Case_ID && item.Customer_Name); // Filter empty rows
+        const mappedData = json.map(row => {
+          const caseId = String(row['Case_ID'] || row['Case ID'] || '');
+          const customerName = String(row['Customer_Name'] || row['Customer Name'] || '');
+          const amount = Number(row['Amount'] || 0);
+          const daysOverdue = Number(row['Days_Overdue'] || row['Days Overdue'] || 0);
+          const region = String(row['Region'] || '');
+
+          return {
+            Case_ID: caseId,
+            Customer_Name: customerName,
+            Amount: amount,
+            Days_Overdue: daysOverdue,
+            Region: region,
+            Status: 'New'
+          };
+        }).filter(item => item.Case_ID && item.Customer_Name); // Filter empty rows
 
         if (mappedData.length === 0) {
           throw new Error("No valid data found. Please check column headers.");
