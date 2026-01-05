@@ -6,39 +6,9 @@ import {
   CheckCircle2, 
   BarChart3, 
   TrendingUp, 
-  Activity 
+  Activity
 } from "lucide-react";
 import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer, 
-  PieChart, 
-  Pie, 
-  Cell,
-  Legend
-} from "recharts";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useRole } from "@/hooks/use-role.tsx";
-
-import { useDashboardStats } from "@/hooks/use-dashboard";
-import { StatCard } from "@/components/StatCard";
-import { 
-  Users, 
-  AlertTriangle, 
-  CheckCircle2, 
-  BarChart3, 
-  TrendingUp, 
-  Activity,
-  ArrowUpRight,
-  ArrowDownRight
-} from "lucide-react";
-import { 
-  BarChart, 
-  Bar, 
   XAxis, 
   YAxis, 
   CartesianGrid, 
@@ -48,9 +18,12 @@ import {
   Pie, 
   Cell,
   AreaChart,
-  Area
+  Area,
+  BarChart,
+  Bar
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { useRole } from "@/hooks/use-role.tsx";
 
 const MODERN_COLORS = {
@@ -92,7 +65,7 @@ export default function Dashboard() {
   const isAdmin = role === "admin";
 
   return (
-    <div className="p-6 md:p-8 space-y-8 max-w-7xl mx-auto bg-[#f8fafc]/50">
+    <div className="p-6 md:p-8 space-y-8 max-w-7xl mx-auto bg-[#f8fafc]/50 min-h-screen">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex flex-col gap-1">
           <h1 className="text-3xl font-bold font-display text-[#1e293b] tracking-tight">
