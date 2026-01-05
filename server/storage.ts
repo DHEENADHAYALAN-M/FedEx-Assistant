@@ -247,7 +247,28 @@ export class MongoStorage implements IStorage {
   async createDca(dca: CreateDcaRequest): Promise<Dca> {
     const id = await getNextId("dcas");
     const doc = await DcaModel.create({ ...dca, id });
-    return doc.toObject();
+    const newDca = doc.toObject();
+
+    // Reassignment Engine: Scan unassigned cases for matching region
+    const unassignedCases = await CaseModel.find({ 
+      assignedDcaId: null, 
+      region: newDca.region 
+    });
+
+    for (const c of unassignedCases) {
+      await CaseModel.updateOne(
+        { id: c.id },
+        { assignedDcaId: newDca.id, lastUpdatedAt: new Date() }
+      );
+      
+      await this.createCaseNote({
+        caseId: c.id,
+        note: `System: Automatically assigned to new DCA ${newDca.name} (${newDca.region})`,
+        isSystemGenerated: true
+      });
+    }
+
+    return newDca;
   }
   async updateDca(id: number, updates: UpdateDcaRequest): Promise<Dca> {
     const doc = await DcaModel.findOneAndUpdate({ id }, updates, { new: true });
@@ -322,11 +343,35 @@ export class MongoStorage implements IStorage {
     } as Case;
   }
   async updateCase(id: number, updates: UpdateCaseRequest): Promise<Case> {
-    const doc = await CaseModel.findOneAndUpdate(
-      { id }, 
-      { ...updates, lastUpdatedAt: new Date() }, 
-      { new: true }
-    );
+    const current = await CaseModel.findOne({ id });
+    if (!current) throw new Error("Case not found");
+
+    const willNeedReassignment = (updates.region && updates.region !== current.region) || 
+                               (updates.amount && updates.amount !== current.amount);
+
+    let finalUpdates = { ...updates, lastUpdatedAt: new Date() };
+
+    if (willNeedReassignment) {
+      const region = updates.region || current.region;
+      const dcas = await DcaModel.find({ region });
+      if (dcas.length > 0) {
+        // Workload-balanced assignment
+        const allCases = await CaseModel.find({ assignedDcaId: { $in: dcas.map(d => d.id) } });
+        const workloadMap: Record<number, number> = {};
+        dcas.forEach(d => workloadMap[d.id] = 0);
+        allCases.forEach(c => {
+          if (!["Recovered", "Escalated"].includes(c.status)) {
+            workloadMap[c.assignedDcaId!] = (workloadMap[c.assignedDcaId!] || 0) + 1;
+          }
+        });
+        const bestDcaId = dcas.sort((a, b) => (workloadMap[a.id] || 0) - (workloadMap[b.id] || 0))[0].id;
+        finalUpdates.assignedDcaId = bestDcaId as number;
+      } else {
+        finalUpdates.assignedDcaId = null;
+      }
+    }
+
+    const doc = await CaseModel.findOneAndUpdate({ id }, finalUpdates, { new: true });
     if (!doc) throw new Error("Case not found");
     const obj = doc.toObject();
     return { 
@@ -360,23 +405,37 @@ export class MongoStorage implements IStorage {
     const pending = allCases.filter(c => !["Recovered", "Escalated"].includes(c.status)).length;
     const recovered = allCases.filter(c => c.status === "Recovered").length;
     const breaches = allCases.filter(c => c.slaDeadline && c.slaDeadline < new Date() && !["Recovered", "Escalated"].includes(c.status)).length;
+    
+    const unassignedCount = allCases.filter(c => c.assignedDcaId === null).length;
+    const casesWithScore = allCases.filter(c => c.aiRecoveryScore !== null);
+    const avgScore = casesWithScore.length > 0 
+      ? Math.round(casesWithScore.reduce((acc, c) => acc + (c.aiRecoveryScore || 0), 0) / casesWithScore.length)
+      : 0;
+
     const statusCounts: Record<string, number> = {};
     const dcaCounts: Record<string, number> = {};
     const priorityCounts: Record<string, number> = { "High": 0, "Medium": 0, "Low": 0 };
     const dcas = await DcaModel.find();
     const dcaMap = new Map(dcas.map(d => [d.id, d.name]));
+    
     allCases.forEach(c => {
       statusCounts[c.status] = (statusCounts[c.status] || 0) + 1;
       priorityCounts[c.priority] = (priorityCounts[c.priority] || 0) + 1;
       const dcaName = c.assignedDcaId ? dcaMap.get(c.assignedDcaId) || "Unassigned" : "Unassigned";
       dcaCounts[dcaName] = (dcaCounts[dcaName] || 0) + 1;
     });
+
+    const aiStatus = await aiRecoveryPrediction({ amount: 1000, daysOverdue: 30, status: "New" }).then(() => true).catch(() => false);
+
     return {
       totalCases: total, pendingCases: pending, recoveredCases: recovered, slaBreaches: breaches,
       casesByStatus: Object.entries(statusCounts).map(([name, value]) => ({ name, value })),
       casesByDca: Object.entries(dcaCounts).map(([name, value]) => ({ name, value })),
       casesByPriority: Object.entries(priorityCounts).map(([name, value]) => ({ name, value })),
-      recoveryRate: total ? Math.round((recovered / total) * 100) : 0
+      recoveryRate: total ? Math.round((recovered / total) * 100) : 0,
+      unassignedCasesCount: unassignedCount,
+      averageRecoveryScore: avgScore,
+      aiEnabled: aiStatus
     };
   }
 

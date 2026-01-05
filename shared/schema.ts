@@ -108,6 +108,9 @@ export type DashboardStats = {
   casesByDca: { name: string; value: number }[];
   casesByPriority: { name: string; value: number }[];
   recoveryRate: number;
+  unassignedCasesCount: number;
+  averageRecoveryScore: number;
+  aiEnabled: boolean;
 };
 
 export const chatModels = ["gpt-4o", "gpt-4o-mini", "claude-3-5-sonnet"] as const;
