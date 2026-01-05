@@ -1,14 +1,18 @@
-import { PostgresStorage } from "./storage";
-import { dcas, cases } from "@shared/schema";
+import mongoose from "mongoose";
+import { storage, initializeStorage } from "./storage";
 
 async function seed() {
-  const storage = new PostgresStorage();
-  
+  if (!process.env.MONGODB_URI) {
+    console.log("MONGODB_URI not set, skipping seeding or using memory storage");
+  }
+
+  await initializeStorage();
+
   // Check if we already have data
   const existingDcas = await storage.getDcas();
   if (existingDcas.length > 0) {
     console.log("Database already seeded");
-    return;
+    process.exit(0);
   }
 
   console.log("Seeding database...");
@@ -69,6 +73,10 @@ async function seed() {
   }
 
   console.log("Seeding completed!");
+  process.exit(0);
 }
 
-seed().catch(console.error);
+seed().catch((err) => {
+  console.error("Seeding failed:", err);
+  process.exit(1);
+});
