@@ -123,6 +123,21 @@ export default function CaseDetailView({ caseId, onClose }: CaseDetailViewProps)
               </span>
               <span>{caseDetails.region}</span>
             </div>
+            {caseDetails.aiRecoveryScore !== null && (
+              <div className="flex justify-between items-center pt-2 border-t mt-2">
+                <span className="text-muted-foreground font-semibold flex items-center gap-1">
+                  🤖 AI Recovery Score:
+                </span>
+                <Badge className={cn(
+                  "font-bold",
+                  caseDetails.aiRecoveryScore > 80 ? "bg-green-100 text-green-700" :
+                  caseDetails.aiRecoveryScore > 50 ? "bg-amber-100 text-amber-700" :
+                  "bg-red-100 text-red-700"
+                )}>
+                  {caseDetails.aiRecoveryScore}%
+                </Badge>
+              </div>
+            )}
           </div>
 
           <div className="pt-2">

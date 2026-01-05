@@ -112,6 +112,7 @@ export default function CaseManagement() {
                 <TableHead className="font-semibold">Customer</TableHead>
                 <TableHead className="font-semibold">Amount</TableHead>
                 <TableHead className="font-semibold">Priority</TableHead>
+                <TableHead className="font-semibold text-center">AI Score</TableHead>
                 <TableHead className="font-semibold">Status</TableHead>
                 <TableHead className="font-semibold">Assigned DCA</TableHead>
                 <TableHead className="font-semibold text-right">Actions</TableHead>
@@ -122,14 +123,14 @@ export default function CaseManagement() {
                 // Loading Skeleton
                 [...Array(5)].map((_, i) => (
                   <TableRow key={i}>
-                    {[...Array(7)].map((_, j) => (
+                    {[...Array(8)].map((_, j) => (
                       <TableCell key={j}><Skeleton className="h-6 w-full" /></TableCell>
                     ))}
                   </TableRow>
                 ))
               ) : cases?.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
+                  <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
                     No cases found matching your criteria.
                   </TableCell>
                 </TableRow>
@@ -147,6 +148,33 @@ export default function CaseManagement() {
                       <Badge className={cn("rounded-md px-2 py-0.5", getPriorityColor(item.priority))}>
                         {item.priority}
                       </Badge>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {item.aiRecoveryScore !== null ? (
+                        <div className="flex flex-col items-center gap-1">
+                          <span className={cn(
+                            "text-xs font-bold px-1.5 py-0.5 rounded",
+                            item.aiRecoveryScore > 80 ? "bg-green-100 text-green-700" :
+                            item.aiRecoveryScore > 50 ? "bg-amber-100 text-amber-700" :
+                            "bg-red-100 text-red-700"
+                          )}>
+                            {item.aiRecoveryScore}%
+                          </span>
+                          <div className="w-12 h-1.5 bg-muted rounded-full overflow-hidden">
+                            <div 
+                              className={cn(
+                                "h-full transition-all",
+                                item.aiRecoveryScore > 80 ? "bg-green-500" :
+                                item.aiRecoveryScore > 50 ? "bg-amber-500" :
+                                "bg-red-500"
+                              )}
+                              style={{ width: `${item.aiRecoveryScore}%` }}
+                            />
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">--</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       <span className={cn("px-2.5 py-1 rounded-full text-xs font-medium border", getStatusColor(item.status))}>
