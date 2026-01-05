@@ -422,7 +422,7 @@ export class MongoStorage implements IStorage {
         const bestDcaId = dcas.sort((a, b) => (workloadMap[a.id] || 0) - (workloadMap[b.id] || 0))[0].id;
         finalUpdates.assignedDcaId = bestDcaId as number;
       } else {
-        finalUpdates.assignedDcaId = null;
+        finalUpdates.assignedDcaId = undefined;
       }
     }
 
