@@ -142,7 +142,7 @@ export default function DcaManagement() {
                       <TrendingUp className="h-3 w-3" /> Recovery Rate
                     </p>
                     <p className="text-xl font-bold">
-                      {dca.activeCases! > 0 
+                      { (dca.activeCases! + dca.recoveredCases!) > 0 
                         ? Math.round((dca.recoveredCases! / (dca.activeCases! + dca.recoveredCases!)) * 100) 
                         : 0}%
                     </p>

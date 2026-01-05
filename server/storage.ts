@@ -109,7 +109,13 @@ export class MemStorage implements IStorage {
   private currentId = { dcas: 1, cases: 1, notes: 1, logs: 1 };
 
   async getDcas(): Promise<Dca[]> {
-    return Array.from(this.dcas.values()).sort((a, b) => Number(b.slaScore) - Number(a.slaScore));
+    const allCases = Array.from(this.cases.values());
+    return Array.from(this.dcas.values()).map(dca => {
+      const dcaCases = allCases.filter(c => c.assignedDcaId === dca.id);
+      const active = dcaCases.filter(c => !["Recovered", "Escalated"].includes(c.status)).length;
+      const recovered = dcaCases.filter(c => c.status === "Recovered").length;
+      return { ...dca, activeCases: active, recoveredCases: recovered };
+    }).sort((a, b) => Number(b.slaScore) - Number(a.slaScore));
   }
   async getDca(id: number): Promise<Dca | undefined> { return this.dcas.get(id); }
   async getDcaByName(name: string): Promise<Dca | undefined> {
@@ -216,7 +222,15 @@ export class MemStorage implements IStorage {
 export class MongoStorage implements IStorage {
   async getDcas(): Promise<Dca[]> {
     const docs = await DcaModel.find().sort("-slaScore");
-    return docs.map(d => d.toObject());
+    const dcas = docs.map(d => d.toObject());
+    const allCases = await CaseModel.find();
+    
+    return dcas.map(dca => {
+      const dcaCases = allCases.filter(c => c.assignedDcaId === dca.id);
+      const active = dcaCases.filter(c => !["Recovered", "Escalated"].includes(c.status)).length;
+      const recovered = dcaCases.filter(c => c.status === "Recovered").length;
+      return { ...dca, activeCases: active, recoveredCases: recovered };
+    });
   }
   async getDca(id: number): Promise<Dca | undefined> {
     const doc = await DcaModel.findOne({ id });
