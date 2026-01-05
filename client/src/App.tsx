@@ -10,7 +10,8 @@ import ExcelUpload from "@/pages/ExcelUpload";
 import DcaManagement from "@/pages/DcaManagement";
 import { Sidebar } from "@/components/Sidebar";
 import { Header } from "@/components/Header";
-import { RoleProvider } from "@/hooks/use-role.tsx";
+import { RoleProvider, useRole } from "@/hooks/use-role.tsx";
+import { LoadingScreen } from "@/components/LoadingScreen";
 
 function Router() {
   return (
@@ -27,8 +28,11 @@ function Router() {
 }
 
 function Layout({ children }: { children: React.ReactNode }) {
+  const { isLoading } = useRole();
+
   return (
     <div className="flex min-h-screen bg-background">
+      {isLoading && <LoadingScreen />}
       <Sidebar />
       <div className="flex-1 flex flex-col">
         <Header />
