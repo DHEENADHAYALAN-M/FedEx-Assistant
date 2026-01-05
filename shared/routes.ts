@@ -1,6 +1,14 @@
 
 import { z } from 'zod';
-import { insertCaseSchema, insertDcaSchema, insertCaseNoteSchema, cases, dcas, caseNotes, uploadLogs } from './schema';
+import { 
+  insertCaseSchema, 
+  insertDcaSchema, 
+  insertCaseNoteSchema, 
+  type Case, 
+  type Dca, 
+  type CaseNote, 
+  type UploadLog 
+} from './schema';
 
 // ============================================
 // SHARED ERROR SCHEMAS
@@ -36,14 +44,14 @@ export const api = {
       method: 'GET' as const,
       path: '/api/dcas',
       responses: {
-        200: z.array(z.custom<typeof dcas.$inferSelect>()),
+        200: z.array(z.custom<Dca>()),
       },
     },
     get: {
       method: 'GET' as const,
       path: '/api/dcas/:id',
       responses: {
-        200: z.custom<typeof dcas.$inferSelect>(),
+        200: z.custom<Dca>(),
         404: errorSchemas.notFound,
       },
     },
@@ -52,7 +60,7 @@ export const api = {
       path: '/api/dcas',
       input: insertDcaSchema,
       responses: {
-        201: z.custom<typeof dcas.$inferSelect>(),
+        201: z.custom<Dca>(),
         400: errorSchemas.validation,
       },
     },
@@ -67,14 +75,14 @@ export const api = {
         dcaId: z.string().optional(),
       }).optional(),
       responses: {
-        200: z.array(z.custom<typeof cases.$inferSelect & { dcaName?: string }>()),
+        200: z.array(z.custom<Case & { dcaName?: string }>()),
       },
     },
     get: {
       method: 'GET' as const,
       path: '/api/cases/:id',
       responses: {
-        200: z.custom<typeof cases.$inferSelect & { dca?: typeof dcas.$inferSelect, notes: typeof caseNotes.$inferSelect[] }>(),
+        200: z.custom<Case & { dca?: Dca, notes: CaseNote[] }>(),
         404: errorSchemas.notFound,
       },
     },
@@ -83,7 +91,7 @@ export const api = {
       path: '/api/cases/:id',
       input: insertCaseSchema.partial(),
       responses: {
-        200: z.custom<typeof cases.$inferSelect>(),
+        200: z.custom<Case>(),
         404: errorSchemas.notFound,
       },
     },
@@ -116,7 +124,7 @@ export const api = {
       path: '/api/cases/:id/notes',
       input: z.object({ note: z.string() }),
       responses: {
-        201: z.custom<typeof caseNotes.$inferSelect>(),
+        201: z.custom<CaseNote>(),
       },
     },
   },
@@ -125,7 +133,7 @@ export const api = {
       method: 'GET' as const,
       path: '/api/upload-logs',
       responses: {
-        200: z.array(z.custom<typeof uploadLogs.$inferSelect>()),
+        200: z.array(z.custom<UploadLog>()),
       },
     },
   }

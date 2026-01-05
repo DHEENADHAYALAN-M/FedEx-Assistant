@@ -121,22 +121,42 @@ export default function ExcelUpload() {
       const json = XLSX.utils.sheet_to_json(sheet) as any[];
       
       const casesToImport = json.map(row => ({
-        Case_ID: String(row['Case_ID'] || row['Case ID']),
-        Customer_Name: String(row['Customer_Name'] || row['Customer Name']),
+        Case_ID: String(row['Case_ID'] || row['Case ID'] || ''),
+        Customer_Name: String(row['Customer_Name'] || row['Customer Name'] || ''),
         Amount: Number(row['Amount'] || 0),
         Days_Overdue: Number(row['Days_Overdue'] || row['Days Overdue'] || 0),
         Region: String(row['Region'] || 'Unknown'),
         Status: 'New'
       })).filter(c => c.Case_ID && c.Customer_Name);
 
+      if (casesToImport.length === 0) {
+        toast({
+          title: "Import Error",
+          description: "No valid cases found in file. Check column headers.",
+          variant: "destructive"
+        });
+        return;
+      }
+
       importCases.mutate({
         filename: file.name,
         cases: casesToImport
       }, {
-        onSuccess: () => {
+        onSuccess: (data) => {
+          toast({
+            title: "Upload Successful",
+            description: data.message,
+          });
           setFile(null);
           setPreviewData([]);
           setUploadProgress(0);
+        },
+        onError: (error: any) => {
+          toast({
+            title: "Upload Failed",
+            description: error.message || "Failed to upload cases",
+            variant: "destructive"
+          });
         }
       });
     };

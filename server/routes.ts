@@ -67,6 +67,43 @@ export async function registerRoutes(
     res.json(await storage.getUploadLogs());
   });
 
+  // ---------- IMPORT ----------
+  app.post(api.cases.import.path, async (req, res) => {
+    const { filename, cases: casesData } = req.body;
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const row of casesData) {
+      try {
+        await storage.createCase({
+          caseIdentifier: String(row.Case_ID),
+          customerName: String(row.Customer_Name),
+          amount: String(row.Amount),
+          daysOverdue: Number(row.Days_Overdue),
+          region: String(row.Region),
+          status: row.Status || "New"
+        });
+        successCount++;
+      } catch (error) {
+        console.error("Error importing row:", error);
+        errorCount++;
+      }
+    }
+
+    await storage.createUploadLog({
+      filename,
+      status: errorCount === 0 ? "Success" : (successCount > 0 ? "Partial" : "Failed"),
+      recordsProcessed: successCount,
+      errorCount
+    });
+
+    res.json({
+      processed: successCount,
+      success: successCount > 0,
+      message: `Imported ${successCount} cases with ${errorCount} errors.`
+    });
+  });
+
   // 🌱 Seed ONCE, SAFE
   await seedDatabaseIfEmpty();
 
