@@ -274,18 +274,11 @@ export default function Dashboard() {
                   />
                   <Bar 
                     dataKey="value" 
-                    fill="url(#barGradient)" 
+                    fill="#ff6200" 
                     radius={[0, 10, 10, 0]} 
                     barSize={24}
                     animationDuration={2000}
-                  >
-                    <defs>
-                      <linearGradient id="barGradient" x1="0" y1="0" x2="1" y2="0">
-                        <stop offset="0%" stopColor="hsl(var(--accent))" />
-                        <stop offset="100%" stopColor="#f97316" />
-                      </linearGradient>
-                    </defs>
-                  </Bar>
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </div>
