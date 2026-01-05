@@ -1,0 +1,111 @@
+You are working on an existing full-stack project called "FedEx Assistant (DebtFlow)".
+
+CURRENT STATE (IMPORTANT CONTEXT):
+- Backend: Node.js + Express + TypeScript
+- Database: MongoDB (already connected and working)
+- Storage layer exists with logic for:
+  - Cases
+  - DCAs (Debt Collection Agencies)
+  - AI recovery score (already computed and stored)
+- Auto-assignment logic exists:
+  - Assigns new cases to DCAs based on region + workload
+- Frontend dashboard already shows:
+  - Cases
+  - DCAs
+  - Uploads
+  - AI score is computed but not fully reflected in UI yet
+- Hosting targets:
+  - Backend → Render
+  - Frontend → Vercel
+
+PROBLEM TO SOLVE (CORE ISSUE):
+1. When new cases are uploaded:
+   - Some cases remain UNASSIGNED because no matching DCA exists for that region at that time.
+2. When a NEW DCA (agency) is later added:
+   - Existing unassigned cases are NOT re-evaluated or auto-assigned.
+3. This breaks real-world logic and real-time accuracy.
+
+WHAT NEEDS TO BE IMPLEMENTED (VERY IMPORTANT):
+
+### BACKEND LOGIC FIX (PRIMARY TASK)
+Implement a **Reassignment Engine** with the following behavior:
+
+A. On CASE CREATION:
+- If a matching DCA exists for the case’s region:
+  - Assign to the least-loaded DCA in that region.
+- If NO DCA exists:
+  - Mark case as `assignedDcaId = null`
+  - Status should remain "New"
+
+B. On DCA CREATION:
+- Immediately scan ALL existing unassigned cases
+- Filter cases by matching region
+- Reassign those cases automatically using the same workload-balancing logic
+- Create system notes for reassignment (audit trail)
+
+C. On CASE UPDATE:
+- If region or amount changes:
+  - Re-evaluate assignment if needed
+
+D. Workload calculation must be:
+- Based on number of active (non-recovered) cases per DCA
+
+### DATA CONSISTENCY RULES
+- MongoDB must be the source of truth
+- Do NOT rely on in-memory maps
+- Ensure indexes on:
+  - cases.region
+  - cases.assignedDcaId
+  - dcas.region
+
+### AI INTEGRATION IMPROVEMENT
+- AI recovery score is already computed
+- Ensure:
+  - AI score is saved to MongoDB
+  - AI score is returned in API responses
+  - Dashboard stats include AI score (average / visibility ready)
+
+### DASHBOARD API FIX
+Update `/api/dashboard/stats` to also return:
+- aiEnabled: boolean
+- averageRecoveryScore
+- unassignedCasesCount
+
+### FRONTEND EXPECTATION (NO UI REDESIGN)
+- Keep existing UI
+- Just ensure new backend fields are available and usable
+- No breaking changes
+
+### REAL-TIME BEHAVIOR
+- Logic must be synchronous and deterministic
+- No background jobs needed
+- Assignment happens immediately on:
+  - Case upload
+  - DCA creation
+
+### DEPLOYMENT SAFETY
+- Must work in:
+  - Local dev
+  - Render (backend)
+  - Vercel (frontend)
+- Environment variables:
+  - MONGODB_URI
+  - OPENAI_API_KEY
+- No secrets hardcoded
+
+### OUTPUT REQUIREMENTS
+- Modify only necessary backend files
+- Clearly separate:
+  - Assignment logic (helper/service)
+  - Storage layer
+- Add clear comments explaining the reassignment flow
+- Do NOT remove existing working features
+
+GOAL:
+Make the system behave like a real enterprise-grade debt allocation platform where:
+- No case stays stuck unassigned
+- New agencies immediately absorb backlog
+- AI + MongoDB + Dashboard stay consistent
+- The system feels “live” and accurate
+
+Proceed autonomously and implement the fixes cleanly.
