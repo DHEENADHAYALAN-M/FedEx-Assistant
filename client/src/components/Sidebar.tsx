@@ -123,9 +123,8 @@ export function SidebarContent({ className, onItemClick }: { className?: string;
 }
 
 export function Sidebar() {
-  const { data: user } = useQuery<User>({
-    queryKey: ["/api/user"],
-  });
+  const [location] = useLocation();
+  const isDcaView = location.startsWith("/dcas");
 
   return (
     <div className="hidden lg:flex flex-col w-64 border-r border-border bg-card min-h-screen fixed left-0 top-0 z-30 shadow-sm">
@@ -143,29 +142,18 @@ export function Sidebar() {
       <SystemHealth />
       
       <div className="p-4 border-t border-border bg-muted/30">
-        <div className="flex items-center justify-between px-2">
-          <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-white font-bold text-xs overflow-hidden">
-              {user?.profileImage ? (
-                <img src={user.profileImage} alt={user.name} className="h-full w-full object-cover" />
-              ) : (
-                user?.name?.substring(0, 2).toUpperCase() || "AD"
-              )}
-            </div>
-            <div className="flex flex-col">
-              <span className="text-sm font-medium text-foreground truncate max-w-[120px]">
-                {user?.name || "Admin User"}
-              </span>
-              <span className="text-xs text-muted-foreground truncate max-w-[120px]">
-                {user?.email || "admin@debtflow.com"}
-              </span>
-            </div>
+        <div className="flex items-center gap-3 px-2">
+          <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-white font-bold text-xs">
+            {isDcaView ? "DCA" : "AD"}
           </div>
-          {user && (
-            <a href="/logout" className="text-muted-foreground hover:text-foreground transition-colors">
-              <LogOut className="h-4 w-4" />
-            </a>
-          )}
+          <div className="flex flex-col">
+            <span className="text-sm font-medium text-foreground">
+              {isDcaView ? "Agency Partner" : "Admin User"}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              {isDcaView ? "partner@debtflow.com" : "admin@debtflow.com"}
+            </span>
+          </div>
         </div>
       </div>
     </div>
