@@ -40,7 +40,8 @@ const CaseSchema = new Schema({
   aiPriority: { type: String, default: null },
   aiFollowUpMessage: { type: String, default: null },
   aiLastUpdatedAt: { type: Date, default: null },
-  createdAt: { type: Date, default: Date.now }
+  createdAt: { type: Date, default: Date.now },
+  lastUpdatedAt: { type: Date, default: Date.now }
 });
 
 const NoteSchema = new Schema({
@@ -146,7 +147,8 @@ export class MemStorage implements IStorage {
   }
   async createCase(data: CreateCaseRequest): Promise<Case> {
     const id = this.currentId.cases++;
-    const newCase: Case = { ...data, id, aiRecoveryScore: null, aiPriority: null, aiFollowUpMessage: null, aiLastUpdatedAt: null, createdAt: new Date(), status: data.status || "New", priority: data.priority || "Low", assignedDcaId: data.assignedDcaId || null, slaDeadline: data.slaDeadline || null };
+    const now = new Date();
+    const newCase: Case = { ...data, id, aiRecoveryScore: null, aiPriority: null, aiFollowUpMessage: null, aiLastUpdatedAt: null, createdAt: data.createdAt || now, lastUpdatedAt: now, status: data.status || "New", priority: data.priority || "Low", assignedDcaId: data.assignedDcaId || null, slaDeadline: data.slaDeadline || null };
     try {
       const recoveryScore = await aiRecoveryPrediction({ amount: Number(data.amount), daysOverdue: data.daysOverdue, status: newCase.status });
       newCase.aiRecoveryScore = recoveryScore;
@@ -158,7 +160,7 @@ export class MemStorage implements IStorage {
   async updateCase(id: number, updates: UpdateCaseRequest): Promise<Case> {
     const current = this.cases.get(id);
     if (!current) throw new Error("Case not found");
-    const updated = { ...current, ...updates };
+    const updated = { ...current, ...updates, lastUpdatedAt: new Date() };
     this.cases.set(id, updated);
     return updated;
   }
@@ -280,10 +282,12 @@ export class MongoStorage implements IStorage {
   }
   async createCase(data: CreateCaseRequest): Promise<Case> {
     const id = await getNextId("cases");
+    const now = new Date();
     const docData: any = { 
       ...data, 
       id, 
-      createdAt: data.createdAt || new Date(),
+      createdAt: data.createdAt || now,
+      lastUpdatedAt: now,
       assignedDcaId: data.assignedDcaId ?? null,
       slaDeadline: data.slaDeadline ?? null
     };
@@ -301,7 +305,11 @@ export class MongoStorage implements IStorage {
     } as Case;
   }
   async updateCase(id: number, updates: UpdateCaseRequest): Promise<Case> {
-    const doc = await CaseModel.findOneAndUpdate({ id }, updates, { new: true });
+    const doc = await CaseModel.findOneAndUpdate(
+      { id }, 
+      { ...updates, lastUpdatedAt: new Date() }, 
+      { new: true }
+    );
     if (!doc) throw new Error("Case not found");
     const obj = doc.toObject();
     return { 

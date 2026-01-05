@@ -59,6 +59,7 @@ export type Case = {
   aiFollowUpMessage: string | null;
   aiLastUpdatedAt: Date | null;
   createdAt: Date;
+  lastUpdatedAt: Date;
 };
 
 export type CaseNote = {
