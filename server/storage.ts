@@ -191,8 +191,10 @@ export class MemStorage implements IStorage {
     const breaches = allCases.filter(c => c.slaDeadline && c.slaDeadline < new Date() && !["Recovered", "Escalated"].includes(c.status)).length;
     const statusCounts: Record<string, number> = {};
     const dcaCounts: Record<string, number> = {};
+    const priorityCounts: Record<string, number> = { "High": 0, "Medium": 0, "Low": 0 };
     allCases.forEach(c => {
       statusCounts[c.status] = (statusCounts[c.status] || 0) + 1;
+      priorityCounts[c.priority] = (priorityCounts[c.priority] || 0) + 1;
       const dcaName = c.assignedDcaId ? this.dcas.get(c.assignedDcaId)?.name || "Unassigned" : "Unassigned";
       dcaCounts[dcaName] = (dcaCounts[dcaName] || 0) + 1;
     });
@@ -200,6 +202,7 @@ export class MemStorage implements IStorage {
       totalCases: total, pendingCases: pending, recoveredCases: recovered, slaBreaches: breaches,
       casesByStatus: Object.entries(statusCounts).map(([name, value]) => ({ name, value })),
       casesByDca: Object.entries(dcaCounts).map(([name, value]) => ({ name, value })),
+      casesByPriority: Object.entries(priorityCounts).map(([name, value]) => ({ name, value })),
       recoveryRate: total ? Math.round((recovered / total) * 100) : 0
     };
   }
@@ -345,10 +348,12 @@ export class MongoStorage implements IStorage {
     const breaches = allCases.filter(c => c.slaDeadline && c.slaDeadline < new Date() && !["Recovered", "Escalated"].includes(c.status)).length;
     const statusCounts: Record<string, number> = {};
     const dcaCounts: Record<string, number> = {};
+    const priorityCounts: Record<string, number> = { "High": 0, "Medium": 0, "Low": 0 };
     const dcas = await DcaModel.find();
     const dcaMap = new Map(dcas.map(d => [d.id, d.name]));
     allCases.forEach(c => {
       statusCounts[c.status] = (statusCounts[c.status] || 0) + 1;
+      priorityCounts[c.priority] = (priorityCounts[c.priority] || 0) + 1;
       const dcaName = c.assignedDcaId ? dcaMap.get(c.assignedDcaId) || "Unassigned" : "Unassigned";
       dcaCounts[dcaName] = (dcaCounts[dcaName] || 0) + 1;
     });
@@ -356,6 +361,7 @@ export class MongoStorage implements IStorage {
       totalCases: total, pendingCases: pending, recoveredCases: recovered, slaBreaches: breaches,
       casesByStatus: Object.entries(statusCounts).map(([name, value]) => ({ name, value })),
       casesByDca: Object.entries(dcaCounts).map(([name, value]) => ({ name, value })),
+      casesByPriority: Object.entries(priorityCounts).map(([name, value]) => ({ name, value })),
       recoveryRate: total ? Math.round((recovered / total) * 100) : 0
     };
   }

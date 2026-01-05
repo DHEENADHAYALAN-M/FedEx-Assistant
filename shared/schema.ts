@@ -106,6 +106,7 @@ export type DashboardStats = {
   slaBreaches: number;
   casesByStatus: { name: string; value: number }[];
   casesByDca: { name: string; value: number }[];
+  casesByPriority: { name: string; value: number }[];
   recoveryRate: number;
 };
 
