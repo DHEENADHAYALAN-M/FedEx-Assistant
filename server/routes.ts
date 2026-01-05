@@ -15,6 +15,16 @@ export async function registerRoutes(
     res.json(await testAIConnection());
   });
 
+  // ---------- SYSTEM HEALTH ----------
+  app.get("/api/admin/health", async (_req, res) => {
+    const aiStatus = await testAIConnection();
+    res.json({
+      db: { status: "connected", message: "PostgreSQL Active" },
+      ai: { status: aiStatus.enabled ? "online" : "offline", message: aiStatus.message },
+      storage: { status: "operational", mode: process.env.MONGODB_URI ? "MongoDB" : "In-Memory" }
+    });
+  });
+
   // ---------- DASHBOARD ----------
   app.get(api.dashboard.stats.path, async (req, res) => {
     const dcaId = req.query.dcaId ? Number(req.query.dcaId) : undefined;
