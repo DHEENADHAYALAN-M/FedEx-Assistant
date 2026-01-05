@@ -189,16 +189,16 @@ export default function Dashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-6">
-            <div className="h-[300px] w-full flex flex-col items-center justify-center">
-              <ResponsiveContainer width="100%" height="90%">
-                <PieChart>
+            <div className="h-[350px] w-full flex flex-col items-center">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
                   <Pie
                     data={pieData}
                     cx="50%"
-                    cy="50%"
-                    innerRadius={80}
-                    outerRadius={110}
-                    paddingAngle={10}
+                    cy="45%"
+                    innerRadius={60}
+                    outerRadius={90}
+                    paddingAngle={8}
                     dataKey="value"
                     stroke="none"
                     animationDuration={2000}
@@ -218,13 +218,13 @@ export default function Dashboard() {
                   />
                 </PieChart>
               </ResponsiveContainer>
-              <div className="grid grid-cols-2 gap-x-8 gap-y-2 mt-4">
+              <div className="grid grid-cols-2 gap-x-8 gap-y-4 -mt-4 w-full px-4">
                 {pieData.map((entry: any, index: number) => (
-                  <div key={index} className="flex items-center gap-2.5">
-                    <div className="w-2.5 h-2.5 rounded-full shadow-sm" style={{ backgroundColor: entry.color }} />
+                  <div key={index} className="flex items-center gap-3">
+                    <div className="w-3 h-3 rounded-full shadow-sm" style={{ backgroundColor: entry.color }} />
                     <div className="flex flex-col">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase leading-none mb-0.5">{entry.name}</span>
-                      <span className="text-xs font-bold text-slate-700 leading-none">{entry.value} Cases</span>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase leading-none mb-1">{entry.name}</span>
+                      <span className="text-sm font-bold text-slate-700 leading-none">{entry.value} Cases</span>
                     </div>
                   </div>
                 ))}
