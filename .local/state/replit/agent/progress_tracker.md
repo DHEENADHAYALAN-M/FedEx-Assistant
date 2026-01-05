@@ -17,4 +17,6 @@
 [x] 17. Fix Excel upload functionality: Added missing import route, fixed field mapping, and resolved type mismatches.
 [x] 18. Resolved type errors in shared/routes.ts by using proper interfaces instead of Drizzle table helper types.
 [x] 19. Display AI Recovery Score in Case Management table and detail view.
-[x] 17. Final verification - application running successfully
+[x] 20. Final verification - application running successfully
+[x] 21. Clear existing data before new Excel upload to prevent duplicates
+[x] 22. Update uploaded data timestamps to current/practical times

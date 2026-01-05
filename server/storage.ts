@@ -96,6 +96,7 @@ export interface IStorage {
   createUploadLog(log: any): Promise<UploadLog>;
   getUploadLogs(): Promise<UploadLog[]>;
   getDashboardStats(dcaId?: number): Promise<DashboardStats>;
+  clearAllCases(): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -195,6 +196,11 @@ export class MemStorage implements IStorage {
       casesByDca: Object.entries(dcaCounts).map(([name, value]) => ({ name, value })),
       recoveryRate: total ? Math.round((recovered / total) * 100) : 0
     };
+  }
+
+  async clearAllCases(): Promise<void> {
+    this.cases.clear();
+    this.currentId.cases = 1;
   }
 }
 
@@ -316,6 +322,10 @@ export class MongoStorage implements IStorage {
       casesByDca: Object.entries(dcaCounts).map(([name, value]) => ({ name, value })),
       recoveryRate: total ? Math.round((recovered / total) * 100) : 0
     };
+  }
+
+  async clearAllCases(): Promise<void> {
+    await CaseModel.deleteMany({});
   }
 }
 

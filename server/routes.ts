@@ -73,6 +73,14 @@ export async function registerRoutes(
     let successCount = 0;
     let errorCount = 0;
 
+    // Clear existing cases to prevent duplicates and maintain practical data
+    try {
+      await storage.clearAllCases();
+    } catch (error) {
+      console.error("Error clearing existing cases:", error);
+    }
+
+    const now = new Date();
     for (const row of casesData) {
       try {
         await storage.createCase({
@@ -82,8 +90,9 @@ export async function registerRoutes(
           daysOverdue: Number(row.Days_Overdue),
           region: String(row.Region),
           status: row.Status || "New",
-          priority: "Low"
-        });
+          priority: "Low",
+          createdAt: now // Use current time for all imported cases
+        } as any);
         successCount++;
       } catch (error) {
         console.error("Error importing row:", error);
