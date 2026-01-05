@@ -22,6 +22,7 @@ import * as XLSX from "xlsx";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { useLocation } from "wouter";
 
 interface PreviewData {
   Case_ID: string;
@@ -32,6 +33,9 @@ interface PreviewData {
 }
 
 export default function ExcelUpload() {
+  const [location] = useLocation();
+  const isHistoryView = location === "/history";
+  
   const [file, setFile] = useState<File | null>(null);
   const [previewData, setPreviewData] = useState<PreviewData[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -171,6 +175,60 @@ export default function ExcelUpload() {
     reader.readAsBinaryString(file);
   };
 
+  if (isHistoryView) {
+    return (
+      <div className="p-6 md:p-8 space-y-8 max-w-7xl mx-auto">
+        <div>
+          <h1 className="text-3xl font-bold font-display text-foreground">Upload History</h1>
+          <p className="text-muted-foreground mt-1">Review the status and records of previous bulk imports.</p>
+        </div>
+
+        <Card className="border-l-4 border-l-primary/50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <History className="h-5 w-5" /> All Recent Uploads
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-6">
+              {logs?.map((log) => (
+                <div key={log.id} className="flex items-start gap-3 relative pb-6 border-l border-border last:border-0 last:pb-0 pl-4 ml-2">
+                  <div className={cn(
+                    "absolute -left-[21px] top-0 h-4 w-4 rounded-full border-2 border-background",
+                    log.status === 'Success' ? "bg-green-500" : "bg-red-500"
+                  )}></div>
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium">{log.filename}</p>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <span>{format(new Date(log.createdAt!), "MMM d, h:mm a")}</span>
+                      <span>•</span>
+                      <span className={log.status === 'Success' ? "text-green-600" : "text-red-600"}>
+                        {log.recordsProcessed} records processed
+                      </span>
+                      <span>•</span>
+                      <span className={cn(
+                        "font-medium",
+                        log.status === 'Success' ? "text-green-600" : "text-red-600"
+                      )}>
+                        {log.status}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {!logs?.length && (
+                <div className="text-center py-12">
+                  <History className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-20" />
+                  <p className="text-muted-foreground">No uploads have been recorded yet.</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 md:p-8 space-y-8 max-w-7xl mx-auto">
       <div>
@@ -178,9 +236,9 @@ export default function ExcelUpload() {
         <p className="text-muted-foreground mt-1">Bulk import cases from standardized Excel templates.</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 gap-8">
         {/* Upload Area */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="space-y-6">
           <Card 
             className="border-2 border-dashed border-border bg-muted/10 hover:bg-muted/30 transition-colors cursor-pointer"
             onDragOver={(e) => e.preventDefault()}
@@ -270,42 +328,6 @@ export default function ExcelUpload() {
               Ensure your Excel file has headers: <strong>Case_ID, Customer_Name, Amount, Days_Overdue, Region</strong>.
             </AlertDescription>
           </Alert>
-        </div>
-
-        {/* Upload History Sidebar */}
-        <div className="lg:col-span-1">
-          <Card className="h-full border-l-4 border-l-primary/50">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <History className="h-5 w-5" /> Recent Uploads
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                {logs?.map((log) => (
-                  <div key={log.id} className="flex items-start gap-3 relative pb-6 border-l border-border last:border-0 last:pb-0 pl-4 ml-2">
-                    <div className={cn(
-                      "absolute -left-[21px] top-0 h-4 w-4 rounded-full border-2 border-background",
-                      log.status === 'Success' ? "bg-green-500" : "bg-red-500"
-                    )}></div>
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium">{log.filename}</p>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <span>{format(new Date(log.createdAt!), "MMM d, h:mm a")}</span>
-                        <span>•</span>
-                        <span className={log.status === 'Success' ? "text-green-600" : "text-red-600"}>
-                          {log.recordsProcessed} records
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-                {!logs?.length && (
-                  <p className="text-sm text-muted-foreground text-center py-4">No uploads yet.</p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
         </div>
       </div>
     </div>
